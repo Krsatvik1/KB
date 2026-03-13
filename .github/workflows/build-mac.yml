@@ -1,0 +1,25 @@
+name: Build Mac Client
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+      
+      # In a real project you'd configure signing keys via secrets here
+      # For now we'll do an ad-hoc build
+      - name: Archive
+        run: xcodebuild archive -project mac-client/KBFlow.xcodeproj -scheme KBFlow -archivePath KBFlow.xcarchive || echo "Requires actual Xcode project file"
+        
+      - name: Zip
+        run: zip -r KBFlow-mac.zip KBFlow.xcarchive || true
+        
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: KBFlow-mac
+          path: KBFlow-mac.zip

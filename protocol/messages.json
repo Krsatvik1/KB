@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "KBFlow Protocol Messages",
+  "description": "JSON schema for KBFlow network packets over TCP. Packets are prefixed by a 2-byte unsigned short (big-endian or little-endian, but let's stick to consistent parsing) for their length. The payload is a UTF-8 JSON string.",
+  "type": "object",
+  "oneOf": [
+    {
+      "title": "Key Event",
+      "properties": {
+        "t": { "const": "k" },
+        "vk": { "type": "integer", "description": "Windows Virtual Key Code" },
+        "flags": { "type": "integer", "description": "bit 0: 1=keydown, 0=keyup" },
+        "ts": { "type": "integer", "description": "unix ms timestamp for latency calc" }
+      },
+      "required": ["t", "vk", "flags"]
+    },
+    {
+      "title": "Mouse Move",
+      "properties": {
+        "t": { "const": "m" },
+        "dx": { "type": "integer", "description": "relative delta X" },
+        "dy": { "type": "integer", "description": "relative delta Y" },
+        "ts": { "type": "integer" }
+      },
+      "required": ["t", "dx", "dy"]
+    },
+    {
+      "title": "Mouse Button",
+      "properties": {
+        "t": { "const": "b" },
+        "btn": { "type": "integer", "description": "0=left, 1=right, 2=middle" },
+        "state": { "type": "integer", "description": "1=down, 0=up" },
+        "ts": { "type": "integer" }
+      },
+      "required": ["t", "btn", "state"]
+    },
+    {
+      "title": "Scroll Wheel",
+      "properties": {
+        "t": { "const": "s" },
+        "dx": { "type": "integer", "description": "Horizontal scroll delta" },
+        "dy": { "type": "integer", "description": "Vertical scroll delta" }
+      },
+      "required": ["t", "dy"]
+    },
+    {
+      "title": "Ping",
+      "properties": {
+        "t": { "const": "ping" },
+        "ts": { "type": "integer" }
+      },
+      "required": ["t", "ts"]
+    },
+    {
+      "title": "Pong",
+      "properties": {
+        "t": { "const": "pong" },
+        "ts": { "type": "integer" }
+      },
+      "required": ["t", "ts"]
+    }
+  ]
+}
