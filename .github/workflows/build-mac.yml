@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       # In a real project you'd configure signing keys via secrets here
       # For now we'll do an ad-hoc build
@@ -19,7 +19,7 @@ jobs:
         run: zip -r KBFlow-mac.zip KBFlow.xcarchive || true
         
       - name: Upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: KBFlow-mac
           path: KBFlow-mac.zip
