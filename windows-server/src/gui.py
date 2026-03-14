@@ -58,6 +58,7 @@ class FlowDeskGUI:
 
         # Initialize Variables
         self.server_name_var = tk.StringVar(value=os.environ.get("COMPUTERNAME", "Windows Server"))
+        if self.tray: self.tray.server_name = self.server_name_var.get()
         self.ip_var = tk.StringVar(value="Discovering...")
         self.status_var = tk.StringVar(value="WAITING FOR CONNECTION")
         self.update_status_var = tk.StringVar(value=f"FlowDesk v{self.app_version}")
