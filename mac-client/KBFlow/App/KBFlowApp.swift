@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct KBFlowApp: App {
+struct FlowDeskApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
@@ -12,7 +12,6 @@ struct KBFlowApp: App {
     }
 }
 
-// A simple root view router. We'll implement ConnectView and FullScreenView later.
 struct RootView: View {
     @StateObject private var appState = AppState.shared
     
@@ -23,11 +22,4 @@ struct RootView: View {
             ConnectView()
         }
     }
-}
-
-class AppState: ObservableObject {
-    static let shared = AppState()
-    
-    @Published var isConnected = false
-    @Published var latencyMs = 0
 }

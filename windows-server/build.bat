@@ -1,11 +1,10 @@
 @echo off
-echo Installing dependencies...
-pip install pyinstaller pywin32
+echo Installing FlowDesk dependencies...
+pip install pyinstaller pywin32 pystray Pillow plyer
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-echo Building KBFlowServer...
-pyinstaller --onefile --noconsole --name KBFlowServer src/main.py
+echo Building FlowDesk Server...
+pyinstaller --onefile --noconsole --name FlowDeskServer --icon="../assets/icons/icon.ico" src/main.py
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-echo Build complete! Output is in dist\KBFlowServer.exe
-pause
+echo Build complete! Output is in dist\FlowDeskServer.exe

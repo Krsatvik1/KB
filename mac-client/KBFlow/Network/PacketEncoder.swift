@@ -14,12 +14,18 @@ struct InputEvent: Codable {
 class PacketEncoder {
     static func encode(event: InputEvent) -> Data? {
         guard let jsonData = try? JSONEncoder().encode(event) else { return nil }
-        
-        // 2-byte header with big-endian length
-        var length = UInt16(jsonData.count).bigEndian
+        return prefixWithLength(jsonData)
+    }
+    
+    static func encodeRaw(_ obj: [String: Any]) -> Data? {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: obj) else { return nil }
+        return prefixWithLength(jsonData)
+    }
+    
+    private static func prefixWithLength(_ data: Data) -> Data {
+        var length = UInt16(data.count).bigEndian
         var packetData = Data(bytes: &length, count: MemoryLayout<UInt16>.size)
-        packetData.append(jsonData)
-        
+        packetData.append(data)
         return packetData
     }
 }
