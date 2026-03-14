@@ -76,7 +76,14 @@ struct ConnectView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+
+            // ── Connected Overlay ──────────────────────────────────────────
+            if appState.isConnected {
+                connectedOverlay
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: appState.isConnected)
         .sheet(isPresented: $showPairing) {
             PairingView(pin: .constant("")) { pin in
                 ConnectionManager.shared.submitPairingPin(pin)
@@ -96,8 +103,95 @@ struct ConnectView: View {
             Text("FlowDesk needs Accessibility permissions to share your keyboard and mouse with Windows. Please enable it in System Settings.")
         }
         .onAppear {
+            // Check accessibility immediately on launch
+            checkAccessibilityOnLaunch()
             DiscoveryListener.shared.start()
             checkForUpdates()
+        }
+    }
+
+    // MARK: - Connected Overlay
+    var connectedOverlay: some View {
+        ZStack {
+            // Frosted glass background
+            Color(hex: "0B0F1A").opacity(0.85)
+                .ignoresSafeArea()
+            
+            VisualEffectBlur()
+                .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                // Pulsing status dot
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "10B981").opacity(0.2))
+                        .frame(width: 60, height: 60)
+                    Circle()
+                        .fill(Color(hex: "10B981").opacity(0.4))
+                        .frame(width: 40, height: 40)
+                    Circle()
+                        .fill(Color(hex: "10B981"))
+                        .frame(width: 20, height: 20)
+                        .shadow(color: Color(hex: "10B981"), radius: 8)
+                }
+
+                VStack(spacing: 8) {
+                    Text("Connected to")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(hex: "6B7280"))
+                    Text(appState.serverName)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(hex: "E8EAF6"))
+                    Text("\(appState.latencyMs)ms latency")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(Color(hex: "10B981"))
+                }
+
+                // Exit instruction pill
+                HStack(spacing: 8) {
+                    Image(systemName: "escape")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Press Esc × 3 to release control")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(Color(hex: "6B7280"))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color(hex: "111827"))
+                .clipShape(Capsule())
+                .overlay(Capsule().strokeBorder(Color(hex: "00D4FF").opacity(0.15), lineWidth: 1))
+
+                // Clipboard row
+                HStack(spacing: 12) {
+                    Button(action: { ConnectionManager.shared.pullClipboard() }) {
+                        Label("Pull Clipboard", systemImage: "arrow.down.doc.fill")
+                    }
+                    .buttonStyle(SmallActionButton())
+
+                    Button(action: { ConnectionManager.shared.pushClipboard() }) {
+                        Label("Push Clipboard", systemImage: "arrow.up.doc.fill")
+                    }
+                    .buttonStyle(SmallActionButton())
+                }
+
+                Button("Disconnect") {
+                    doDisconnect()
+                }
+                .buttonStyle(FlowDeskSecondaryButton())
+            }
+            .padding(40)
+        }
+    }
+
+    // Check accessibility silently on launch (no disruptive prompt)
+    func checkAccessibilityOnLaunch() {
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
+        let isTrusted = AXIsProcessTrustedWithOptions(options)
+        if !isTrusted {
+            // Show our custom alert after a brief delay so the UI settles
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                appState.showAccessibilityAlert = true
+            }
         }
     }
 
