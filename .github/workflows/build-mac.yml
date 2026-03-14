@@ -3,6 +3,7 @@ name: Build Mac Client
 on:
   push:
     branches: [main]
+    tags: ["v*"]
 
 jobs:
   build:
@@ -23,3 +24,10 @@ jobs:
         with:
           name: FlowDesk-mac
           path: FlowDesk-mac.zip
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: FlowDesk-mac.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,6 +3,7 @@ name: Build Windows Server
 on:
   push:
     branches: [main]
+    tags: ["v*"]
 
 jobs:
   build:
@@ -25,3 +26,11 @@ jobs:
         with:
           name: FlowDeskServer-windows
           path: windows-server/dist/FlowDeskServer.exe
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: windows-server/dist/FlowDeskServer.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
