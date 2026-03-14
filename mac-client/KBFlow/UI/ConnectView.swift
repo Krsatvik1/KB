@@ -70,7 +70,6 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        }
         .sheet(isPresented: $showPairing) {
             PairingView(pin: .constant("")) { pin in
                 ConnectionManager.shared.submitPairingPin(pin)
