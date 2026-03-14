@@ -21,6 +21,10 @@ class KBFlowServer:
         self.app_version = app_version
         self.running = False
         self.pairing = PairingManager(on_pin_generated=self._on_pin_generated)
+        
+        # Connection status for GUI/monitoring
+        self.client_socket = None
+        self.client_address = None
 
     def _on_pin_generated(self, pin: str, client_ip: str):
         print(f"New device from {client_ip} — Pairing PIN: {pin}")
@@ -69,6 +73,10 @@ class KBFlowServer:
             if self.tray:
                 self.tray.update_connection(addr[0])
 
+            # Update server state for GUI
+            self.client_socket = conn
+            self.client_address = addr
+
             # ── Main event loop ───────────────────────────────────────────────
             while self.running:
                 event = self._read_packet(conn)
@@ -86,6 +94,9 @@ class KBFlowServer:
             print(f"Client error: {e}")
         finally:
             print(f"Disconnected: {addr[0]}")
+            if self.client_socket == conn:
+                self.client_socket = None
+                self.client_address = None
             if self.tray:
                 self.tray.update_disconnected()
             conn.close()
