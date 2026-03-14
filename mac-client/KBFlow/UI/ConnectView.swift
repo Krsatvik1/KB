@@ -506,11 +506,26 @@ struct ConnectView: View {
                         .foregroundColor(Color(hex: "6B7280"))
                 }
                 Spacer()
+                
                 Button(appState.isConnected && appState.serverIP == device.ip ? "Disconnect" : "Connect") {
                     appState.serverIP = device.ip
                     if appState.isConnected { doDisconnect() } else { doConnect() }
                 }
                 .buttonStyle(FlowDeskSecondaryButton())
+                
+                // Remove (forget) button
+                Button(action: {
+                    if appState.isConnected && appState.serverIP == device.ip {
+                        doDisconnect()
+                    }
+                    DeviceStore.shared.remove(ip: device.ip)
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(hex: "6B7280"))
+                }
+                .buttonStyle(.plain)
+                .help("Forget this device")
             }
 
             if appState.isConnected && appState.serverIP == device.ip {
