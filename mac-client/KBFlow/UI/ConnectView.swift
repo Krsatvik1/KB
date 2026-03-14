@@ -69,7 +69,6 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        }
         .frame(minWidth: appState.isConnected ? 800 : 460, minHeight: appState.isConnected ? 600 : 520)
         .frame(width: appState.isConnected ? nil : 460, height: appState.isConnected ? nil : 520)
         .sheet(isPresented: $showPairing) {
