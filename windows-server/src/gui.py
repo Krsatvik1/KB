@@ -92,7 +92,7 @@ class FlowDeskGUI:
         
         self.update_status_var = tk.StringVar(value=f"FlowDesk v{self.server.app_version}")
         self.update_label = tk.Label(update_inner, textvariable=self.update_status_var, bg=self.HEADER_COLOR, fg="#9CA3AF", font=("Segoe UI", 9))
-        self.update_label.pack(side=tk.LEFT, padx=15, py=12)
+        self.update_label.pack(side=tk.LEFT, padx=15, pady=12)
         
         self.update_btn = tk.Button(update_inner, text="Check Now", bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR, 
                                     activebackground=self.HEADER_COLOR, activeforeground="#FFFFFF",
