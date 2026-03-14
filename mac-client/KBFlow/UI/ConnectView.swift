@@ -26,6 +26,10 @@ struct ConnectView: View {
     @State private var showPairing = false
     @State private var isCheckingUpdates = false
     @State private var showUpToDateMessage = false
+    
+    // Identity Editing
+    @State private var isEditingClientName = false
+    @State private var tempClientName = ""
 
     // Settings
     @AppStorage("cmdToWin") var cmdToWin = true
@@ -109,17 +113,75 @@ struct ConnectView: View {
                 FlowDeskTextField(placeholder: "192.168.1.x", text: $appState.serverIP)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("Port")
-                FlowDeskTextField(placeholder: "5123", text: $appState.serverPort)
+            // ── Device Identity Section ─────────────────────────────────────
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("MY DEVICE NAME")
+                
+                HStack(spacing: 12) {
+                    if isEditingClientName {
+                        FlowDeskTextField(placeholder: "Mac", text: $tempClientName)
+                        
+                        Button("Save") {
+                            let trimmed = tempClientName.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty {
+                                appState.clientName = trimmed
+                            }
+                            isEditingClientName = false
+                        }
+                        .buttonStyle(SmallActionPill(color: Color(hex: "10B981"))) // Green
+                        
+                        Button("Cancel") {
+                            isEditingClientName = false
+                        }
+                        .buttonStyle(SmallActionPill(color: Color(hex: "6B7280"))) // Gray
+                    } else {
+                        Text(appState.clientName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "E8EAF6"))
+                        
+                        Spacer()
+                        
+                        Button("Edit") {
+                            tempClientName = appState.clientName
+                            isEditingClientName = true
+                        }
+                        .buttonStyle(SmallActionPill(color: Color(hex: "00D4FF")))
+                    }
+                }
+                .padding(12)
+                .background(Color(hex: "111827"))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(isEditingClientName ? Color(hex: "00D4FF").opacity(0.4) : Color.clear, lineWidth: 1)
+                )
             }
+            .padding(.bottom, 10)
 
-            if let err = errorMessage {
+            if let err = appState.lastHandshakeError {
+                VStack(spacing: 4) {
+                    Text(err)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color(hex: "FF4566"))
+                        .multilineTextAlignment(.center)
+                    
+                    Button("Dismiss") {
+                        appState.lastHandshakeError = nil
+                    }
+                    .buttonStyle(SmallActionPill(color: Color(hex: "FF4566")))
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(Color(hex: "FF4566").opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.bottom, 10)
+            } else if let err = errorMessage {
                 Text(err)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundColor(Color(hex: "FF4566"))
+                    .padding(.bottom, 10)
             }
-
+            
             HStack {
                 Spacer()
                 if isConnecting {
@@ -300,6 +362,8 @@ struct ConnectView: View {
     func doDisconnect() {
         ConnectionManager.shared.disconnect()
         appState.isConnected = false
+        // Clear pairing sheet state just in case
+        showPairing = false
     }
 
     func startDiscovery() {
@@ -420,6 +484,20 @@ struct ConnectView: View {
     }
 }
 
+struct SmallActionPill: ButtonStyle {
+    var color: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 10, weight: .bold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(color.opacity(configuration.isPressed ? 0.3 : 0.1))
+            .foregroundColor(color)
+            .clipShape(Capsule())
+    }
+}
+
+// Keeping it for backward compatibility or different icon style
 struct SmallActionButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

@@ -140,6 +140,11 @@ class ConnectionManager: ObservableObject {
                     case "auth_required":
                         self.connectCompletion?(.requiresPairing)
                         self.connectCompletion = nil
+                    case "auth_fail":
+                        let reason = json["reason"] as? String ?? "Authentication failed."
+                        AppState.shared.lastHandshakeError = reason
+                        self.connectCompletion?(.failure(reason))
+                        self.connectCompletion = nil
                     case "auth_ok":
                         if let name = json["name"] as? String {
                             AppState.shared.serverName = name
@@ -151,9 +156,6 @@ class ConnectionManager: ObservableObject {
                         self.isConnected = true
                         LatencyProbe.shared.start()
                         self.connectCompletion?(.success)
-                        self.connectCompletion = nil
-                    case "auth_fail":
-                        self.connectCompletion?(.failure("Pairing failed. Check PIN."))
                         self.connectCompletion = nil
                     case "clip_push_req":
                         self.pushClipboard()

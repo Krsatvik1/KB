@@ -13,6 +13,7 @@ class AppState: ObservableObject {
     @Published var updateAvailable: UpdateInfo? = nil
     @Published var autoDiscoveredIP: String? = nil
     @Published var showAccessibilityAlert = false
+    @Published var lastHandshakeError: String? = nil
     
     private init() {}
     
