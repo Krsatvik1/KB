@@ -75,6 +75,8 @@ class KBFlowServer:
                     self._send_json(conn, MSG_AUTH_FAIL)
                     print(f"Auth failed from {addr[0]}")
                     return
+                
+                # Send confirmation (Mac waits for this to start input loop)
                 self._send_json(conn, MSG_AUTH_OK)
                 self.current_pin = None
                 if self.tray:
@@ -82,6 +84,8 @@ class KBFlowServer:
                 print(f"Paired: {addr[0]}")
             else:
                 self.pairing.touch_device(addr)
+                # Still send confirmation so Mac knows handshake is done
+                self._send_json(conn, MSG_AUTH_OK)
 
             if self.tray:
                 self.tray.update_connection(addr[0])
