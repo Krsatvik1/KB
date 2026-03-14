@@ -1,3 +1,5 @@
+import SwiftUI
+
 struct StatusOverlay: View {
     @ObservedObject private var appState = AppState.shared
     @State private var isVisible = true

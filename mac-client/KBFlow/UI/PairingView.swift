@@ -44,11 +44,11 @@ struct PairingView: View {
                     ForEach(0..<6, id: \.self) { i in
                         PINDigitBox(digit: $digits[i], isFocused: focusedIndex == i)
                             .focused($focusedIndex, equals: i)
-                            .onChange(of: digits[i]) { val in
-                                if val.count > 1 {
-                                    digits[i] = String(val.last!)
+                            .onChange(of: digits[i]) { oldValue, newValue in
+                                if newValue.count > 1 {
+                                    digits[i] = String(newValue.last!)
                                 }
-                                if !val.isEmpty && i < 5 {
+                                if !newValue.isEmpty && i < 5 {
                                     focusedIndex = i + 1
                                 }
                                 if digits.allSatisfy({ $0.count == 1 }) {
