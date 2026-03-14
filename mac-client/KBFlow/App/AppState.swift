@@ -25,7 +25,6 @@ class AppState: ObservableObject {
     @Published var discoveredServers: [DiscoveredServer] = []
     @Published var showAccessibilityAlert = false
     @Published var lastHandshakeError: String? = nil
-    @Published var isScanning = false
     
     private init() {}
     
@@ -45,15 +44,5 @@ class AppState: ObservableObject {
     
     func clearDiscovery() {
         discoveredServers.removeAll()
-    }
-
-    func startScanning() {
-        guard !isScanning else { return }
-        isScanning = true
-        
-        // Timeout after 10 seconds if no servers found
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-            self.isScanning = false
-        }
     }
 }

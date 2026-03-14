@@ -89,7 +89,10 @@ class KBFlowServer:
                 
                 # Wait for second packet containing PIN
                 auth_pkt = self._read_packet(conn)
-                if not auth_pkt or not self.pairing.verify_pin(addr, auth_pkt.get('pin', ''), auth_pkt.get('name', 'Mac')):
+                submitted_pin = auth_pkt.get('pin', '') if auth_pkt else ''
+                submitted_name = auth_pkt.get('name', 'Mac') if auth_pkt else 'Mac'
+                
+                if not auth_pkt or not self.pairing.verify_pin(addr=addr, pin_to_verify=submitted_pin, name=submitted_name):
                     self._send_json(conn, {"t": "auth_fail", "reason": "Incorrect PIN or pairing failed."})
                     print(f"Auth failed from {addr[0]} - Incorrect PIN.")
                     return

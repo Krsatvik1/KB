@@ -33,43 +33,18 @@ class DiscoveryListener {
 
     private func receive(on conn: NWConnection) {
         conn.start(queue: queue)
-        
-        let handler: (Data?, NWConnection.ContentContext?, Bool, NWError?) -> Void = { [weak self, weak conn] data, _, _, error in
-            guard let self = self, let conn = conn else { return }
-            
-            if let data = data,
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let name = json["name"] as? String, name == "FlowDesk",
-               let port = json["port"] as? Int,
-               case let .hostPort(host, _) = conn.endpoint {
-                
-                let ip = "\(host)"
-                let serverName = json["server_name"] as? String ?? "Windows PC"
-                
-                DispatchQueue.main.async {
-                    AppState.shared.updateDiscovery(ip: ip, name: serverName, port: UInt16(port))
-                    self.onDiscovered?(ip, UInt16(port))
-                }
-            }
-            
-            if error == nil {
-                // Listen for next beacon on this same connection
-                conn.receiveMessage(completion: { data, context, complete, error in
-                    // Re-use the same block logic recursively
-                    // Note: In Swift, we can't easily reference a 'name' before it's defined, 
-                    // but we can use a helper function or a capturing closure.
-                    // Instead of complex recursion, let's just use a dedicated receiver function.
-                    self.receiveLoop(on: conn)
-                })
-            }
-        }
-        
-        conn.receiveMessage(completion: handler)
+        receiveNextPacket(on: conn)
     }
 
-    private func receiveLoop(on conn: NWConnection) {
+    private func receiveNextPacket(on conn: NWConnection) {
         conn.receiveMessage { [weak self] data, _, _, error in
-            guard let self = self, error == nil else { return }
+            guard let self = self else { return }
+            
+            if let error = error {
+                // If the "connection" (flow) is closed, stop looping
+                print("Discovery connection error: \(error)")
+                return
+            }
             
             if let data = data,
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -85,7 +60,9 @@ class DiscoveryListener {
                     self.onDiscovered?(ip, UInt16(port))
                 }
             }
-            self.receiveLoop(on: conn)
+            
+            // Continue listening for the next packet on this connection
+            self.receiveNextPacket(on: conn)
         }
     }
 }

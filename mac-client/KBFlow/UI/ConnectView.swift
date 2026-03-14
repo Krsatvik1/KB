@@ -95,7 +95,6 @@ struct ConnectView: View {
             Text("FlowDesk needs Accessibility permissions to share your keyboard and mouse with Windows. Please enable it in System Settings.")
         }
         .onAppear {
-            appState.startScanning()
             DiscoveryListener.shared.start()
             checkForUpdates()
         }
@@ -109,48 +108,24 @@ struct ConnectView: View {
                 HStack {
                     panelHeader("Available Servers")
                     Spacer()
-                    Button(action: {
-                        appState.clearDiscovery()
-                        appState.startScanning()
-                    }) {
-                        Image(systemName: "arrow.clockwise.circle")
-                            .foregroundColor(Color(hex: "00D4FF"))
-                    }
-                    .buttonStyle(.plain)
                 }
 
-                if appState.discoveredServers.isEmpty {
+                let unpariedDiscovery = appState.discoveredServers.filter { server in
+                    !DeviceStore.shared.devices.values.contains(where: { $0.ip == server.id })
+                }
+                
+                if unpariedDiscovery.isEmpty {
                     VStack(spacing: 12) {
-                        if appState.isScanning {
-                            ProgressView().scaleEffect(0.6).tint(Color(hex: "6B7280"))
-                            Text("Searching for FlowDesk on local network...")
-                                .font(.system(size: 11).italic())
-                                .foregroundColor(Color(hex: "6B7280"))
-                        } else {
-                            Image(systemName: "wifi.exclamationmark")
-                                .font(.system(size: 20))
-                                .foregroundColor(Color(hex: "6B7280"))
-                            Text("No servers found")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(Color(hex: "E8EAF6"))
-                            Text("Ensure FlowDesk is running on your Windows PC and both devices are on the same Wi-Fi.")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "6B7280"))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 20)
-                            
-                            Button("Try Again") {
-                                appState.startScanning()
-                            }
-                            .buttonStyle(SmallActionPill(color: Color(hex: "00D4FF")))
-                            .padding(.top, 4)
-                        }
+                        ProgressView().scaleEffect(0.6).tint(Color(hex: "6B7280"))
+                        Text("Searching for new FlowDesk instances...")
+                            .font(.system(size: 11).italic())
+                            .foregroundColor(Color(hex: "6B7280"))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
                 } else {
                     VStack(spacing: 8) {
-                        ForEach(appState.discoveredServers) { server in
+                        ForEach(unpariedDiscovery) { server in
                             serverDiscoveryCard(server)
                         }
                     }
