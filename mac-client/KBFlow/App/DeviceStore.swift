@@ -3,6 +3,7 @@ import Foundation
 /// Stores paired FlowDesk server fingerprints locally across sessions.
 /// OTA updates never touch this — it's in UserDefaults, not the app bundle.
 struct PairedDevice: Codable {
+    var name: String
     let ip: String
     let hostname: String
     let firstSeen: Date

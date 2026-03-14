@@ -21,9 +21,8 @@ def save_paired_devices(devices):
 def generate_pin():
     return str(random.randint(100000, 999999))
 
-def device_fingerprint(addr):
-    """Create a stable fingerprint from client IP."""
-    return hashlib.sha256(addr[0].encode()).hexdigest()[:16]
+    digest = str(hashlib.sha256(addr[0].encode()).hexdigest())
+    return digest[0:16]
 
 class PairingManager:
     def __init__(self, on_pin_generated=None):
@@ -64,6 +63,7 @@ class PairingManager:
             del self.pending_pins[fp]
             self.paired[fp] = {
                 'ip': addr[0],
+                'name': submitted_pin.split('|')[1] if '|' in submitted_pin else 'Unknown Device',
                 'first_seen': datetime.utcnow().isoformat(),
                 'last_seen': datetime.utcnow().isoformat(),
             }
@@ -71,10 +71,16 @@ class PairingManager:
             return True
         return False
 
-    def touch_device(self, addr):
-        """Update last-seen timestamp for a known paired device."""
+    def touch_device(self, addr, name=None):
+        """Update last-seen timestamp and name for a known paired device."""
         fp = device_fingerprint(addr)
         if fp in self.paired:
             self.paired[fp]['last_seen'] = datetime.utcnow().isoformat()
             self.paired[fp]['ip'] = addr[0]
+            if name:
+                self.paired[fp]['name'] = name
             save_paired_devices(self.paired)
+
+    def forget_all(self):
+        self.paired = {}
+        save_paired_devices({})

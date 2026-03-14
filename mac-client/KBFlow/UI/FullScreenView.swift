@@ -14,16 +14,17 @@ struct FullScreenView: View {
             if showInstruction {
                 VStack(spacing: 12) {
                     Spacer()
-                    Image(systemName: "hand.tap.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(Color(hex: "00D4FF"))
-                        .shadow(color: Color(hex: "00D4FF"), radius: 10)
-                    
-                    Text("Controlling Windows")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(hex: "E8EAF6"))
-                    
                     VStack(spacing: 8) {
+                    Text("PRESS ESC × 3 TO EXIT")
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    Text("CONTROLLING \(AppState.shared.serverName.uppercased())")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Color(hex: "00D4FF"))
+                        .tracking(2)
+                }
+ VStack(spacing: 8) {
                         instructionRow(icon: "4.circle.fill", text: "Swipe up with 4 fingers to exit")
                         instructionRow(icon: "escape", text: "Press Esc × 3 quickly to panic-release")
                     }

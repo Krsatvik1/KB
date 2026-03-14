@@ -13,8 +13,12 @@ class FlowDeskGUI:
         self.BG_COLOR = "#0B0F1A"
         self.HEADER_COLOR = "#111827"
         self.ACCENT_COLOR = "#00D4FF"
-        self.SUBTEXT_COLOR = "#6B7280"
-        self.TEXT_COLOR = "#E8EAF6"
+        self.SUBTEXT_COLOR = "#9CA3AF"
+        self.TEXT_COLOR = "#F3F4F6"
+        self.CARD_COLOR = "#1E293B"
+        
+        # Identity
+        self.server_name_var = tk.StringVar(value=os.environ.get("COMPUTERNAME", "Windows Server"))
         
     def run(self):
         """Starts the GUI mainloop (should be called on main thread)"""
@@ -43,61 +47,91 @@ class FlowDeskGUI:
         main_container = ttk.Frame(self.root, padding="30")
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        # Header Section
-        ttk.Label(main_container, text="FlowDesk", style="Header.TLabel").pack(pady=(0, 4))
-        ttk.Label(main_container, text="Windows Server v" + self.app_version, style="Sub.TLabel").pack(pady=(0, 30))
+        # ── Header ────────────────────────────────────────────────────────────
+        header_frame = tk.Frame(main_container, bg=self.BG_COLOR)
+        header_frame.pack(fill=tk.X, pady=(0, 24))
+        
+        # App Info
+        top_info = tk.Frame(header_frame, bg=self.BG_COLOR)
+        top_info.pack(side=tk.LEFT)
+        tk.Label(top_info, text="FlowDesk", font=("Segoe UI", 20, "bold"), fg=self.ACCENT_COLOR, bg=self.BG_COLOR).pack(anchor=tk.W)
+        
+        self.ip_var = tk.StringVar(value="IP: Detect...ing")
+        tk.Label(top_info, textvariable=self.ip_var, font=("Segoe UI Semibold", 9), fg=self.SUBTEXT_COLOR, bg=self.BG_COLOR).pack(anchor=tk.W)
+        self._set_local_ip()
 
-        # Status Display Container
-        status_box = tk.Canvas(main_container, bg=self.HEADER_COLOR, highlightthickness=1, highlightbackground="#1F2937", height=100)
-        status_box.pack(fill=tk.X, pady=(0, 20))
+        # Version Badge
+        v_frame = tk.Frame(header_frame, bg=self.CARD_COLOR, padx=8, pady=2)
+        v_frame.pack(side=tk.RIGHT, pady=(10, 0))
+        tk.Label(v_frame, text=f"v{self.app_version}", font=("Segoe UI Bold", 9), fg=self.ACCENT_COLOR, bg=self.CARD_COLOR).pack()
+
+        # ── Setup Card ────────────────────────────────────────────────────────
+        setup_card = tk.Frame(main_container, bg=self.CARD_COLOR, padx=16, pady=16)
+        setup_card.pack(fill=tk.X, pady=(0, 20))
+        
+        tk.Label(setup_card, text="IDENTITY", font=("Segoe UI Bold", 10), fg=self.ACCENT_COLOR, bg=self.CARD_COLOR).pack(anchor=tk.W, pady=(0, 8))
+        
+        name_input_frame = tk.Frame(setup_card, bg=self.CARD_COLOR)
+        name_input_frame.pack(fill=tk.X)
+        
+        self.name_entry = tk.Entry(name_input_frame, textvariable=self.server_name_var, bg="#0F172A", fg=self.TEXT_COLOR, 
+                                  insertbackground=self.ACCENT_COLOR, font=("Segoe UI", 11), borderwidth=0)
+        self.name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=8, padx=(0, 10))
+        
+        magic_btn = tk.Button(name_input_frame, text="✨", bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR, relief="flat", 
+                             command=self._generate_name, font=("Segoe UI", 12))
+        magic_btn.pack(side=tk.RIGHT)
+
+        # ── Connection Status ─────────────────────────────────────────────────
+        self.status_card = tk.Frame(main_container, bg=self.CARD_COLOR, padx=16, pady=16)
+        self.status_card.pack(fill=tk.X, pady=(0, 20))
+        
+        tk.Label(self.status_card, text="STATUS", font=("Segoe UI Bold", 10), fg=self.ACCENT_COLOR, bg=self.CARD_COLOR).pack(anchor=tk.W, pady=(0, 8))
         
         self.status_var = tk.StringVar(value="WAITING FOR CONNECTION")
-        self.status_label = tk.Label(status_box, textvariable=self.status_var, bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR, font=("Segoe UI Semibold", 10))
-        self.status_label.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
+        self.status_label = tk.Label(self.status_card, textvariable=self.status_var, bg=self.CARD_COLOR, fg=self.ACCENT_COLOR, font=("Segoe UI Semibold", 12))
+        self.status_label.pack(anchor=tk.W)
         
-        self.client_var = tk.StringVar(value="No devices connected")
-        ttk.Label(status_box, textvariable=self.client_var, style="Sub.TLabel", background=self.HEADER_COLOR).place(relx=0.5, rely=0.7, anchor=tk.CENTER)
+        self.client_var = tk.StringVar(value="Broadcasting on local network...")
+        tk.Label(self.status_card, textvariable=self.client_var, font=("Segoe UI", 9), fg=self.SUBTEXT_COLOR, bg=self.CARD_COLOR).pack(anchor=tk.W, pady=(4, 0))
 
-        # Pairing PIN Container (hidden by default)
-        self.pairing_frame = tk.Frame(main_container, bg="#423E2A", highlightthickness=1, highlightbackground="#EAB308")
+        # ── Paired Card ───────────────────────────────────────────────────────
+        paired_card = tk.Frame(main_container, bg=self.CARD_COLOR, padx=16, pady=16)
+        paired_card.pack(fill=tk.X, pady=(0, 20))
         
-        ttk.Label(self.pairing_frame, text="PAIRING REQUEST", font=("Segoe UI", 9, "bold"), foreground="#EAB308", background="#423E2A").pack(pady=(12, 4))
+        tk.Label(paired_card, text="TRUSTED DEVICES", font=("Segoe UI Bold", 10), fg=self.ACCENT_COLOR, bg=self.CARD_COLOR).pack(anchor=tk.W, pady=(0, 12))
+        
+        self.devices_frame = tk.Frame(paired_card, bg=self.CARD_COLOR)
+        self.devices_frame.pack(fill=tk.X)
+        
+        # Action Buttons
+        btn_frame = tk.Frame(paired_card, bg=self.CARD_COLOR)
+        btn_frame.pack(fill=tk.X, pady=(12, 0))
+        
+        self.forget_btn = tk.Button(btn_frame, text="Forget All", bg=self.CARD_COLOR, fg="#FF4566", relief="flat",
+                                   font=("Segoe UI Bold", 9), command=self._clear_paired)
+        self.forget_btn.pack(side=tk.RIGHT)
+
+        # ── Pairing Frame ────────────────────────────────────────────────────
+        self.pairing_frame = tk.Frame(main_container, bg="#423E2A", highlightthickness=1, highlightbackground="#EAB308", padx=16, pady=16)
+        
+        tk.Label(self.pairing_frame, text="PAIRING REQUEST", font=("Segoe UI Bold", 9), foreground="#EAB308", background="#423E2A").pack(anchor=tk.W, pady=(0, 8))
         self.pin_var = tk.StringVar(value="000000")
-        tk.Label(self.pairing_frame, textvariable=self.pin_var, bg="#423E2A", fg="#FFFFFF", font=("Segoe UI", 28, "bold")).pack(pady=(0, 8))
-        ttk.Label(self.pairing_frame, text="Enter this PIN on your Mac", style="Sub.TLabel", background="#423E2A").pack(pady=(0, 12))
+        tk.Label(self.pairing_frame, textvariable=self.pin_var, bg="#423E2A", fg="#FFFFFF", font=("Segoe UI", 32, "bold")).pack(pady=4)
+        tk.Label(self.pairing_frame, text="Enter PIN on your Mac", font=("Segoe UI", 9), fg="#EAB308", background="#423E2A").pack(pady=(0, 4))
 
-        # Device pairing / Security Section
-        self.security_label = ttk.Label(main_container, text="SECURITY", style="Sub.TLabel")
-        self.security_label.pack(anchor=tk.W, pady=(10, 8))
+        # ── Updates Section ───────────────────────────────────────────────────
+        update_card = tk.Frame(main_container, bg=self.CARD_COLOR, padx=16, pady=12)
+        update_card.pack(fill=tk.X, side=tk.BOTTOM, pady=(10, 0))
         
-        self.copy_btn = ttk.Button(main_container, text="Copy Server IP Address", style="FlowDesk.TButton", command=self._copy_ip)
-        self.copy_btn.pack(fill=tk.X, pady=5)
-        self.forget_btn = ttk.Button(main_container, text="Forget All Trusted Devices", style="FlowDesk.TButton", command=self._clear_paired)
-        self.forget_btn.pack(fill=tk.X, pady=5)
-
-        # Footer
-        footer = ttk.Frame(main_container)
-        footer.pack(side=tk.BOTTOM, fill=tk.X)
+        # self.update_status_var = tk.StringVar(value="Checking...") # Moved to __init__
+        tk.Label(update_card, text="UPDATES", font=("Segoe UI Bold", 9), fg=self.ACCENT_COLOR, bg=self.CARD_COLOR).pack(anchor=tk.W, side=tk.LEFT)
+        self.update_label = tk.Label(update_card, textvariable=self.update_status_var, bg=self.CARD_COLOR, fg=self.SUBTEXT_COLOR, font=("Segoe UI", 9))
+        self.update_label.pack(side=tk.LEFT, padx=10)
         
-        shortcut_info = "Control is shared while connected.\nPress Esc × 3 on Mac to emergency exit."
-        ttk.Label(footer, text=shortcut_info, style="Sub.TLabel", justify=tk.LEFT).pack(side=tk.LEFT)
-
-        # Updates Section (Aesthetics matched to sidebar)
-        update_section = tk.Frame(main_container, bg=self.BG_COLOR)
-        update_section.pack(fill=tk.X, pady=(20, 0))
-        ttk.Label(update_section, text="UPDATES", style="Sub.TLabel").pack(anchor=tk.W, pady=(0, 8))
-        
-        update_inner = tk.Frame(update_section, bg=self.HEADER_COLOR, highlightthickness=1, highlightbackground="#1F2937")
-        update_inner.pack(fill=tk.X)
-        
-        self.update_status_var = tk.StringVar(value=f"FlowDesk v{self.server.app_version}")
-        self.update_label = tk.Label(update_inner, textvariable=self.update_status_var, bg=self.HEADER_COLOR, fg="#9CA3AF", font=("Segoe UI", 9))
-        self.update_label.pack(side=tk.LEFT, padx=15, pady=12)
-        
-        self.update_btn = tk.Button(update_inner, text="Check Now", bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR, 
-                                    activebackground=self.HEADER_COLOR, activeforeground="#FFFFFF",
-                                    relief="flat", font=("Segoe UI", 9, "bold"), command=self._check_updates)
-        self.update_btn.pack(side=tk.RIGHT, padx=15)
+        self.update_btn = tk.Button(update_card, text="Update", bg=self.CARD_COLOR, fg=self.ACCENT_COLOR, 
+                                    relief="flat", font=("Segoe UI Bold", 9), command=self._check_updates)
+        self.update_btn.pack(side=tk.RIGHT)
 
         # Handle app closing
         self.root.protocol("WM_DELETE_WINDOW", self.hide)
@@ -146,18 +180,30 @@ class FlowDeskGUI:
         if self.root:
             self.root.withdraw()
 
-    def _copy_ip(self):
+    @property
+    def server_name(self):
+        return self.server_name_var.get()
+
+    @staticmethod
+    def _generate_fingerprint(raw):
+        digest = str(hashlib.sha256(raw.encode()).hexdigest())
+        return digest[0:16]
+
+    def _generate_name(self):
+        prefixes = ["Super", "Turbo", "Flow", "Hyper", "Swift", "Pro"]
+        nouns = ["Rig", "Desk", "Server", "Box", "Link", "Node"]
+        self.server_name_var.set(f"{random.choice(prefixes)}{random.choice(nouns)}")
+
+    def _set_local_ip(self):
         import socket
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
             s.close()
-            self.root.clipboard_clear()
-            self.root.clipboard_append(ip)
-            messagebox.showinfo("Copied", f"Local IP {ip} copied to clipboard.")
+            self.ip_var.set(f"IP: {ip}")
         except Exception:
-            messagebox.showerror("Error", "Could not detect local IP.")
+            self.ip_var.set("IP: Unknown")
 
     def _clear_paired(self):
         if messagebox.askyesno("Security", "Forget all paired devices? Clients will need a new PIN to connect."):
@@ -173,25 +219,47 @@ class FlowDeskGUI:
         if getattr(self.server, 'current_pin', None):
             self.pin_var.set(self.server.current_pin)
             if not self.pairing_frame.winfo_viewable():
-                self.pairing_frame.pack(fill=tk.X, pady=(0, 20), after=self.status_label.master)
-                self.security_label.pack_forget()
-                self.copy_btn.pack_forget()
-                self.forget_btn.pack_forget()
-                self.show() # Auto-lift if pairing starts
+                self.pairing_frame.pack(fill=tk.X, pady=(0, 20), before=self.status_card)
+                self.show() 
         else:
             if self.pairing_frame.winfo_viewable():
                 self.pairing_frame.pack_forget()
-                self.security_label.pack(anchor=tk.W, pady=(10, 8))
-                self.copy_btn.pack(fill=tk.X, pady=5)
-                self.forget_btn.pack(fill=tk.X, pady=5)
+
+        # Update paired devices list
+        for widget in self.devices_frame.winfo_children():
+            widget.destroy()
+            
+        paired_map = self.server.pairing.paired
+        if not paired_map:
+            tk.Label(self.devices_frame, text="No trusted devices yet", font=("Segoe UI", 9, "italic"),
+                    fg=self.SUBTEXT_COLOR, bg=self.CARD_COLOR).pack(pady=4)
+        else:
+            for fp, d in paired_map.items():
+                row = tk.Frame(self.devices_frame, bg=self.HEADER_COLOR, padx=8, pady=6)
+                row.pack(fill=tk.X, pady=2)
+                
+                tk.Label(row, text=d.get('name', 'Mac'), font=("Segoe UI Bold", 10), 
+                        fg=self.TEXT_COLOR, bg=self.HEADER_COLOR).pack(side=tk.LEFT)
+                
+                # Manual Sync button (only if active)
+                if self.server.client_address and self.server.client_address[0] == d.get('ip'):
+                    tk.Button(row, text="Pull Clipboard", bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR,
+                             border=0, font=("Segoe UI Bold", 8), command=self._request_client_clip).pack(side=tk.RIGHT)
 
         if self.server.client_socket:
-            self.status_var.set("● CONNECTED")
+            self.status_var.set("CONNECTED")
             self.status_label.config(fg="#10B981") # Green
-            self.client_var.set(f"Active Client: {self.server.client_address[0]}")
+            self.client_var.set(f"Controlling Windows from {self.server.client_name}")
         else:
-            self.status_var.set("WAITING FOR CONNECTION")
-            self.status_label.config(fg=self.ACCENT_COLOR) # Blue-Cyan
-            self.client_var.set("No devices connected")
+            self.status_var.set("LOOKING FOR CLIENTS")
+            self.status_label.config(fg=self.ACCENT_COLOR)
+            self.client_var.set("Listening for connection requests...")
             
         self.root.after(1000, self._update_loop)
+
+    def _request_client_clip(self):
+        # We don't have a direct packet for PULLing yet, but we can implement it 
+        # For now, this button triggers a sync signal to the server
+        if self.server.client_socket:
+            self.server._send_json(self.server.client_socket, {"t": "clip_push_req"})
+            messagebox.showinfo("Sync", "Requested clipboard from Mac...")

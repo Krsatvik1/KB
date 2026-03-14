@@ -137,12 +137,17 @@ struct ConnectView: View {
             // Pairing history
             if !DeviceStore.shared.devices.isEmpty {
                 Divider().background(Color(hex: "00D4FF").opacity(0.1))
-                Text("Recent Devices")
+                Text("Trusted Devices")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(Color(hex: "6B7280"))
                     .textCase(.uppercase)
-                ForEach(Array(DeviceStore.shared.devices.values.prefix(3)), id: \.ip) { d in
-                    deviceRow(d)
+                
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(Array(DeviceStore.shared.devices.values), id: \.ip) { d in
+                            deviceCard(d)
+                        }
+                    }
                 }
             }
 
@@ -151,14 +156,14 @@ struct ConnectView: View {
             // Latency pill
             HStack(spacing: 6) {
                 Circle()
-                    .fill(appState.isConnected ? Color(hex: "00D4FF") : Color(hex: "FF4566"))
+                    .fill(appState.isConnected ? Color(hex: "10B981") : Color(hex: "FF4566"))
                     .frame(width: 7, height: 7)
-                    .shadow(color: appState.isConnected ? Color(hex: "00D4FF") : .clear, radius: 4)
-                Text(appState.isConnected ? "Connected · \(appState.latencyMs)ms" : "Disconnected")
+                    .shadow(color: appState.isConnected ? Color(hex: "10B981") : .clear, radius: 4)
+                Text(appState.isConnected ? "\(appState.serverName) · \(appState.latencyMs)ms" : "Disconnected")
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "6B7280"))
                 Spacer()
-                Text("⎋⎋⎋ to release")
+                Text("⎋⎋⎋ to exit")
                     .font(.system(size: 10))
                     .foregroundColor(Color(hex: "6B7280").opacity(0.6))
             }
@@ -170,6 +175,13 @@ struct ConnectView: View {
     var settingsPanel: some View {
         VStack(alignment: .leading, spacing: 20) {
             panelHeader("Settings")
+
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("This Device Name")
+                FlowDeskTextField(placeholder: "Mac", text: $appState.clientName)
+            }
+
+            Divider().background(Color(hex: "00D4FF").opacity(0.1))
 
             settingsToggle("⌘ Command → Win Key", on: $cmdToWin)
             settingsToggle("⌥ Option → Alt", on: $optToAlt)
@@ -364,27 +376,59 @@ struct ConnectView: View {
         )
     }
 
-    func deviceRow(_ device: PairedDevice) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(device.ip)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(Color(hex: "E8EAF6"))
-                Text("Last connected · \(device.lastSeen.formatted(.relative(presentation: .named)))")
-                    .font(.system(size: 10))
-                    .foregroundColor(Color(hex: "6B7280"))
+    func deviceCard(_ device: PairedDevice) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(device.name)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "E8EAF6"))
+                    Text(device.ip)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(Color(hex: "6B7280"))
+                }
+                Spacer()
+                Button(appState.isConnected && appState.serverIP == device.ip ? "Disconnect" : "Connect") {
+                    appState.serverIP = device.ip
+                    if appState.isConnected { doDisconnect() } else { doConnect() }
+                }
+                .buttonStyle(FlowDeskSecondaryButton())
             }
-            Spacer()
-            Button("Connect") {
-                appState.serverIP = device.ip
-                selectedTab = .connect
+
+            if appState.isConnected && appState.serverIP == device.ip {
+                HStack(spacing: 8) {
+                    Button(action: { ConnectionManager.shared.pullClipboard() }) {
+                        Label("Pull Clipboard", systemImage: "arrow.down.doc.fill")
+                    }
+                    .buttonStyle(SmallActionButton())
+                    
+                    Button(action: { ConnectionManager.shared.pushClipboard() }) {
+                        Label("Push Clipboard", systemImage: "arrow.up.doc.fill")
+                    }
+                    .buttonStyle(SmallActionButton())
+                }
+                .transition(.opacity)
             }
-            .buttonStyle(FlowDeskSecondaryButton())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(12)
         .background(Color(hex: "111827"))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(appState.isConnected && appState.serverIP == device.ip ? Color(hex: "00D4FF").opacity(0.3) : Color.clear, lineWidth: 1)
+        )
+    }
+}
+
+struct SmallActionButton: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 10, weight: .bold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color(hex: "00D4FF").opacity(configuration.isPressed ? 0.3 : 0.1))
+            .foregroundColor(Color(hex: "00D4FF"))
+            .clipShape(Capsule())
     }
 }
 

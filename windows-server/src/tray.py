@@ -10,7 +10,7 @@ try:
 except ImportError:
     TRAY_AVAILABLE = False
 
-ICON_PATH = os.path.join(os.path.dirname(__file__), 'icon.ico')
+ICON_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'icons', 'icon.ico')
 
 class TrayApp:
     def __init__(self, on_quit=None, on_check_updates=None, on_show_settings=None):
@@ -22,6 +22,12 @@ class TrayApp:
         self._client_info = "No client"
         self._latency = "--"
         self._pending_pin = None
+        self._on_show_settings = on_show_settings
+
+    @property
+    def server_name(self):
+        # This will be injected by main.py from the GUI name var
+        return getattr(self, '_injected_name', "Windows PC")
 
     def _build_menu(self):
         items = [

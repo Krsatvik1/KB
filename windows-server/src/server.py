@@ -25,6 +25,7 @@ class KBFlowServer:
         # Connection status for GUI/monitoring
         self.client_socket = None
         self.client_address = None
+        self.client_name = None
         self.current_pin = None
 
     def _on_pin_generated(self, pin: str, client_ip: str):
@@ -51,41 +52,61 @@ class KBFlowServer:
                 if self.running:
                     print(f"Accept error: {e}")
 
+    def _handle_clipboard_sync(self, conn):
+        import win32clipboard # Included in pywin32
+        try:
+            win32clipboard.OpenClipboard()
+            data = None
+            if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_UNICODETEXT):
+                data = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+                self._send_json(conn, {"t": "clip_sync_resp", "type": "text", "data": data})
+            elif win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
+                # For images, we just signal it's too complex for now or send a stub
+                # In a full impl, we'd convert DIB to PNG bytes
+                self._send_json(conn, {"t": "clip_sync_resp", "type": "error", "msg": "Image sync coming soon"})
+            else:
+                self._send_json(conn, {"t": "clip_sync_resp", "type": "empty"})
+            win32clipboard.CloseClipboard()
+        except Exception as e:
+            print(f"Clipboard error: {e}")
+            self._send_json(conn, {"t": "clip_sync_resp", "type": "error", "msg": str(e)})
+
     def handle_client(self, conn, addr):
         print(f"Connection from {addr[0]}")
         try:
             # ── Pairing check ─────────────────────────────────────────────────
             if not self.pairing.is_paired(addr):
                 pin = self.pairing.start_pairing(addr)
-                # Tell client it must authenticate
-                self._send_json(conn, {**MSG_AUTH_REQUIRED, "hint": "Enter PIN shown on Windows"})
-                
-                # Wait for auth packet, but skip over any intermittent pings
-                auth_pkt = None
-                while self.running:
-                    auth_pkt = self._read_packet(conn)
-                    if not auth_pkt: break
-                    if auth_pkt.get("t") == "auth":
-                        break
-                    elif auth_pkt.get("t") == "ping":
-                        # Echo back ping to keep connection alive if needed
-                        self.probe.handle_ping(auth_pkt, lambda d: self._send_raw(conn, d))
-                
-                if not auth_pkt or not self.pairing.verify_pin(addr, str(auth_pkt.get("pin", ""))):
+                if not auth_pkt or not self.pairing.verify_pin(addr, f"{auth_pkt.get('pin', '')}|{auth_pkt.get('name', 'Mac')}"):
                     self._send_json(conn, MSG_AUTH_FAIL)
                     print(f"Auth failed from {addr[0]}")
                     return
                 
                 # Send confirmation (Mac waits for this to start input loop)
-                self._send_json(conn, MSG_AUTH_OK)
+                self._send_json(conn, {**MSG_AUTH_OK, "name": self.tray.server_name if self.tray else "Windows PC"})
                 self.current_pin = None
+                self.client_name = auth_pkt.get('name', 'Mac')
                 if self.tray:
                     self.tray.pairing_complete()
-                print(f"Paired: {addr[0]}")
+                print(f"Paired: {self.client_name} ({addr[0]})")
             else:
-                self.pairing.touch_device(addr)
+                # Check name conflict
+                name = auth_pkt.get('name')
+                fingerprint = self.pairing.device_fingerprint(addr)
+                if name:
+                    for fid, d in self.pairing.paired_devices.items():
+                        if d.get('name') == name and fid != fingerprint:
+                            self._send_json(client_sock, {
+                                "t": "auth_fail",
+                                "reason": f"Name '{name}' is already taken. Please choose a unique name on your device."
+                            })
+                            return
+
+                # Auth successful
+                self.client_name = auth_pkt.get('name', 'Mac')
+                self.pairing.touch_device(addr, self.client_name)
                 # Still send confirmation so Mac knows handshake is done
-                self._send_json(conn, MSG_AUTH_OK)
+                self._send_json(client_sock, {**MSG_AUTH_OK, "name": self.tray.server_name if self.tray else "Windows PC"})
 
             if self.tray:
                 self.tray.update_connection(addr[0])
@@ -104,6 +125,8 @@ class KBFlowServer:
                     self.probe.handle_ping(event, lambda d: self._send_raw(conn, d))
                     if self.tray:
                         self.tray.update_connection(addr[0], event.get("ts", 0))
+                elif t == "clip_sync_req":
+                    self._handle_clipboard_sync(conn)
                 else:
                     self.injector.dispatch(event)
 

@@ -80,8 +80,36 @@ class ConnectionManager: ObservableObject {
         sendRaw(data)
     }
 
+    // MARK: - Clipboard Sync
+    
+    func pullClipboard() {
+        sendPayload(["t": "clip_sync_req"])
+    }
+    
+    func pushClipboard() {
+        let pb = NSPasteboard.general
+        if let str = pb.string(forType: .string) {
+            sendPayload(["t": "clip_push", "type": "text", "data": str])
+        }
+    }
+    
+    private func handleClipResp(_ payload: [String: Any]) {
+        guard let type = payload["type"] as? String else { return }
+        if type == "text", let data = payload["data"] as? String {
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(data, forType: .string)
+            print("Clipboard synced from Windows")
+        }
+    }
+
     private func sendRaw(_ data: Data) {
         connection?.send(content: data, completion: .contentProcessed({ _ in }))
+    }
+
+    private func sendPayload(_ payload: [String: Any]) {
+        guard let data = PacketEncoder.encodeRaw(payload) else { return }
+        sendRaw(data)
     }
 
     // MARK: - Receive loop
@@ -102,25 +130,37 @@ class ConnectionManager: ObservableObject {
             guard let self else { return }
             if let data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 let t = json["t"] as? String
-                if t == "pong", let ts = json["ts"] as? Int {
-                    let rtt = Int(Date().timeIntervalSince1970 * 1000) - ts
-                    DispatchQueue.main.async { LatencyProbe.shared.updateRTT(rtt) }
-                } else if t == "auth_required" {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    switch t {
+                    case "pong":
+                        if let ts = json["ts"] as? Int {
+                            let rtt = Int(Date().timeIntervalSince1970 * 1000) - ts
+                            LatencyProbe.shared.updateRTT(rtt)
+                        }
+                    case "auth_required":
                         self.connectCompletion?(.requiresPairing)
                         self.connectCompletion = nil
-                    }
-                } else if t == "auth_ok" {
-                    DispatchQueue.main.async {
+                    case "auth_ok":
+                        if let name = json["name"] as? String {
+                            AppState.shared.serverName = name
+                            // Update store
+                            let device = PairedDevice(name: name, ip: self.serverIP ?? "", hostname: "", firstSeen: Date(), lastSeen: Date())
+                            DeviceStore.shared.save(device: device)
+                        }
+                        print("Auth successful")
                         self.isConnected = true
                         LatencyProbe.shared.start()
                         self.connectCompletion?(.success)
                         self.connectCompletion = nil
-                    }
-                } else if t == "auth_fail" {
-                    DispatchQueue.main.async {
-                        self.connectCompletion?(.failure("Incorrect PIN. Try again."))
+                    case "auth_fail":
+                        self.connectCompletion?(.failure("Pairing failed. Check PIN."))
                         self.connectCompletion = nil
+                    case "clip_push_req":
+                        self.pushClipboard()
+                    case "clip_sync_resp":
+                        self.handleClipResp(json)
+                    default:
+                        break
                     }
                 }
             }
