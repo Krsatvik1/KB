@@ -4,7 +4,7 @@ import threading
 
 from input_injector import InputInjector
 from latency_probe import LatencyProbe
-from pairing import PairingManager
+from pairing import PairingManager, device_fingerprint
 
 # Pairing handshake message types
 MSG_AUTH_REQUIRED = {"t": "auth_required"}
@@ -110,7 +110,7 @@ class KBFlowServer:
                 # ── Already Paired Flow ───────────────────────────────────────
                 # Check for name conflicts even for paired devices
                 name = auth_pkt.get('name', 'Mac')
-                fingerprint = self.pairing.device_fingerprint(addr)
+                fingerprint = device_fingerprint(addr)
                 
                 # Verify name uniqueness
                 for fid, d in self.pairing.paired.items():

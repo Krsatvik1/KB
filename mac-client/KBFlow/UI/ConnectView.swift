@@ -20,6 +20,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
 
 struct ConnectView: View {
     @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var deviceStore = DeviceStore.shared
     @State private var selectedTab: SidebarTab = .connect
     @State private var isConnecting = false
     @State private var errorMessage: String? = nil
@@ -237,7 +238,7 @@ struct ConnectView: View {
             }
 
             // Pairing history
-            if !DeviceStore.shared.devices.isEmpty {
+            if !deviceStore.devices.isEmpty {
                 Divider().background(Color(hex: "00D4FF").opacity(0.1))
                 Text("Trusted Devices")
                     .font(.system(size: 10, weight: .semibold))
@@ -246,7 +247,7 @@ struct ConnectView: View {
                 
                 ScrollView {
                     VStack(spacing: 12) {
-                        ForEach(Array(DeviceStore.shared.devices.values), id: \.ip) { d in
+                        ForEach(Array(deviceStore.devices.values), id: \.ip) { d in
                             deviceCard(d)
                         }
                     }

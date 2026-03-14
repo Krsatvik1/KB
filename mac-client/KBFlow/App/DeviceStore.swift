@@ -10,12 +10,12 @@ struct PairedDevice: Codable {
     var lastSeen: Date
 }
 
-class DeviceStore {
+class DeviceStore: ObservableObject {
     static let shared = DeviceStore()
 
     private let key = "FlowDesk.pairedDevices"
 
-    private(set) var devices: [String: PairedDevice] = [:]  // ip -> device
+    @Published private(set) var devices: [String: PairedDevice] = [:]  // ip -> device
 
     private init() {
         load()
