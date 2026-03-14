@@ -10,6 +10,7 @@ class AppState: ObservableObject {
     @Published var needsPairing = false
     @Published var updateAvailable: UpdateInfo? = nil
     @Published var autoDiscoveredIP: String? = nil
+    @Published var showAccessibilityAlert = false
     
     private init() {}
     

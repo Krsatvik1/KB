@@ -70,8 +70,7 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(minWidth: appState.isConnected ? 800 : 460, minHeight: appState.isConnected ? 600 : 520)
-        .frame(width: appState.isConnected ? nil : 460, height: appState.isConnected ? nil : 520)
+        }
         .sheet(isPresented: $showPairing) {
             PairingView(pin: .constant("")) { pin in
                 ConnectionManager.shared.submitPairingPin(pin)
@@ -80,6 +79,15 @@ struct ConnectView: View {
                 ConnectionManager.shared.disconnect()
                 showPairing = false
             }
+        }
+        .alert("Accessibility Access Required", isPresented: $appState.showAccessibilityAlert) {
+            Button("Open System Settings") {
+                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+                NSWorkspace.shared.open(url)
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("FlowDesk needs Accessibility permissions to share your keyboard and mouse with Windows. Please enable it in System Settings.")
         }
         .onAppear {
             startDiscovery()
@@ -119,6 +127,7 @@ struct ConnectView: View {
                         .tint(Color(hex: "00D4FF"))
                 } else {
                     Button(appState.isConnected ? "Disconnect" : "Connect") {
+                        if !checkAccessibility() { return }
                         appState.isConnected ? doDisconnect() : doConnect()
                     }
                     .buttonStyle(FlowDeskPrimaryButton())
@@ -243,6 +252,15 @@ struct ConnectView: View {
     }
 
     // MARK: - Helpers
+
+    func checkAccessibility() -> Bool {
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String : false]
+        let isTrusted = AXIsProcessTrustedWithOptions(options)
+        if !isTrusted {
+            appState.showAccessibilityAlert = true
+        }
+        return isTrusted
+    }
 
     func doConnect() {
         guard !appState.serverIP.isEmpty else { errorMessage = "Enter a Windows IP address."; return }

@@ -13,13 +13,23 @@ struct FlowDeskApp: App {
 }
 
 struct RootView: View {
-    @StateObject private var appState = AppState.shared
+    @ObservedObject private var appState = AppState.shared
     
     var body: some View {
-        if appState.isConnected {
-            FullScreenView()
-        } else {
-            ConnectView()
+        ZStack {
+            if appState.isConnected {
+                FullScreenView()
+                    .transition(.opacity)
+            } else {
+                ConnectView()
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: appState.isConnected)
+        .onChange(of: appState.isConnected) { connected in
+            if let delegate = NSApp.delegate as? AppDelegate {
+                delegate.toggleFullScreen(connected)
+            }
         }
     }
 }
