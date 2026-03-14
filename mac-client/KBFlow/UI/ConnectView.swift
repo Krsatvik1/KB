@@ -25,6 +25,7 @@ struct ConnectView: View {
     @State private var errorMessage: String? = nil
     @State private var showPairing = false
     @State private var isCheckingUpdates = false
+    @State private var showUpToDateMessage = false
 
     // Settings
     @AppStorage("cmdToWin") var cmdToWin = true
@@ -229,9 +230,10 @@ struct ConnectView: View {
                     .buttonStyle(FlowDeskPrimaryButton())
                 }
             } else {
-                Text("FlowDesk is up to date.")
+                Text(showUpToDateMessage ? "Just checked: Everything is current!" : "FlowDesk is up to date.")
                     .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "6B7280"))
+                    .foregroundColor(showUpToDateMessage ? Color(hex: "00D4FF") : Color(hex: "6B7280"))
+                    .animation(.default, value: showUpToDateMessage)
             }
 
             HStack {
@@ -300,10 +302,18 @@ struct ConnectView: View {
 
     func checkForUpdates() {
         isCheckingUpdates = true
+        showUpToDateMessage = false
         Updater.shared.checkForUpdates { info in
             DispatchQueue.main.async { 
                 appState.updateAvailable = info
                 isCheckingUpdates = false
+                if info == nil {
+                    showUpToDateMessage = true
+                    // Hide message after 3 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        showUpToDateMessage = false
+                    }
+                }
             }
         }
     }

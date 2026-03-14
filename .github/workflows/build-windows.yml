@@ -24,16 +24,25 @@ jobs:
         run: |
           cmd /c build.bat
           
+      - name: Create Installer (Inno Setup)
+        working-directory: windows-server
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+          
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: FlowDeskServer-windows
-          path: windows-server/dist/FlowDeskServer.exe
+          path: |
+            windows-server/dist/FlowDeskServer.exe
+            windows-server/build/windows/FlowDeskSetup.exe
 
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: windows-server/dist/FlowDeskServer.exe
+          files: |
+            windows-server/dist/FlowDeskServer.exe
+            windows-server/build/windows/FlowDeskSetup.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,7 +14,7 @@ from discovery import DiscoveryBeacon
 from updater import check_for_updates
 from gui import FlowDeskGUI
 
-APP_VERSION = "1.1.5"
+APP_VERSION = "1.1.6"
 
 def main():
     # Track quit event across threads
@@ -36,6 +36,18 @@ def main():
                 )
             except Exception:
                 print(f"Update available: {result['version']} — {result['url']}")
+        else:
+            # Notify only on manual check
+            try:
+                from plyer import notification
+                notification.notify(
+                    title="FlowDesk",
+                    message=f"You are running the latest version (v{APP_VERSION}).",
+                    app_name="FlowDesk",
+                    timeout=5
+                )
+            except Exception:
+                pass
 
     # Start tray (runs in background thread; main thread keeps it alive)
     tray = TrayApp(on_quit=on_quit, on_check_updates=on_check_updates)
