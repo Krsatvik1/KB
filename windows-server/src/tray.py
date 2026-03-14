@@ -13,9 +13,10 @@ except ImportError:
 ICON_PATH = os.path.join(os.path.dirname(__file__), 'icon.ico')
 
 class TrayApp:
-    def __init__(self, on_quit=None, on_check_updates=None):
+    def __init__(self, on_quit=None, on_check_updates=None, on_show_settings=None):
         self.on_quit = on_quit
         self.on_check_updates = on_check_updates
+        self.on_show_settings = on_show_settings
         self._icon = None
         self._status = "Waiting for connection..."
         self._client_info = "No client"
@@ -29,6 +30,8 @@ class TrayApp:
             item(lambda _: f"● {self._status}", None, enabled=False),
             item(lambda _: f"Client: {self._client_info}", None, enabled=False),
             item(lambda _: f"Latency: {self._latency}", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            item("Show Settings", lambda _: self.on_show_settings() if self.on_show_settings else None),
         ]
         if self._pending_pin:
             items += [
@@ -53,9 +56,13 @@ class TrayApp:
             print("pystray not available — running headless")
             return
         try:
-            img = Image.open(ICON_PATH)
+            img = Image.open(ICON_PATH).convert("RGBA")
         except Exception:
-            img = Image.new('RGB', (64, 64), color=(11, 15, 26))
+            img = Image.new('RGBA', (64, 64), color=(0, 0, 0, 0))
+            # Draw a simple circle if icon fails
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(img)
+            draw.ellipse([10, 10, 54, 54], fill=(0, 212, 255))
 
         self._icon = pystray.Icon(
             "FlowDesk",

@@ -12,8 +12,9 @@ from server import KBFlowServer
 from tray import TrayApp
 from discovery import DiscoveryBeacon
 from updater import check_for_updates
+from gui import FlowDeskGUI
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.5"
 
 def main():
     # Track quit event across threads
@@ -46,6 +47,11 @@ def main():
 
     # Start TCP server in a background thread
     server = KBFlowServer(tray=tray, app_version=APP_VERSION)
+    
+    # Initialize GUI
+    gui = FlowDeskGUI(server=server, tray=tray, app_version=APP_VERSION)
+    tray.on_show_settings = gui.show
+
     server_thread = threading.Thread(target=server.start, daemon=True)
     server_thread.start()
 
