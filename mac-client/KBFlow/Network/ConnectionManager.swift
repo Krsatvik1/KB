@@ -45,7 +45,8 @@ class ConnectionManager: ObservableObject {
             DispatchQueue.main.async {
                 switch state {
                 case .ready:
-                    // Only start receive loop, don't set isConnected or start probe yet
+                    // Send initial identification so server knows who we are
+                    self?.sendPayload(["t": "auth", "name": AppState.shared.clientName])
                     self?.receiveLoop()
                 case .failed(let err):
                     self?.tearDown()
@@ -63,7 +64,11 @@ class ConnectionManager: ObservableObject {
 
     // Submit pairing PIN after auth_required is received
     func submitPairingPin(_ pin: String) {
-        guard let data = PacketEncoder.encodeRaw(["t": "auth", "pin": pin]) else { return }
+        guard let data = PacketEncoder.encodeRaw([
+            "t": "auth",
+            "pin": pin,
+            "name": AppState.shared.clientName
+        ]) else { return }
         sendRaw(data)
     }
 

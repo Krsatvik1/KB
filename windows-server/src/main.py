@@ -52,6 +52,7 @@ def main():
 
     # Create tray (runs in background)
     tray = TrayApp(on_quit=on_quit, on_check_updates=on_check_updates)
+    tray.server_name = os.environ.get("COMPUTERNAME", "Windows Server")
 
     # Start UDP discovery beacon
     beacon = DiscoveryBeacon(server_port=5123, app_version=APP_VERSION, name_provider=lambda: tray.server_name)
