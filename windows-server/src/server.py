@@ -80,6 +80,7 @@ class KBFlowServer:
                 if not auth_pkt or not self.pairing.verify_pin(addr, f"{auth_pkt.get('pin', '')}|{auth_pkt.get('name', 'Mac')}"):
                     self._send_json(conn, MSG_AUTH_FAIL)
                     print(f"Auth failed from {addr[0]}")
+                    print(f"Auth failed from {addr[0]} - Incorrect PIN or name.")
                     return
                 
                 # Send confirmation (Mac waits for this to start input loop)
@@ -90,23 +91,31 @@ class KBFlowServer:
                     self.tray.pairing_complete()
                 print(f"Paired: {self.client_name} ({addr[0]})")
             else:
+                # If already paired, still expect an auth packet to get client name and touch device
+                auth_pkt = self._read_packet(conn)
+                if not auth_pkt:
+                    print(f"Client {addr[0]} disconnected before sending auth packet (already paired).")
+                    return
+
                 # Check name conflict
                 name = auth_pkt.get('name')
                 fingerprint = self.pairing.device_fingerprint(addr)
                 if name:
-                    for fid, d in self.pairing.paired_devices.items():
+                    for fid, d in self.pairing.paired.items():
                         if d.get('name') == name and fid != fingerprint:
-                            self._send_json(client_sock, {
+                            self._send_json(conn, {
                                 "t": "auth_fail",
                                 "reason": f"Name '{name}' is already taken. Please choose a unique name on your device."
                             })
+                            print(f"Auth failed from {addr[0]} - Name conflict: '{name}'")
                             return
 
                 # Auth successful
                 self.client_name = auth_pkt.get('name', 'Mac')
                 self.pairing.touch_device(addr, self.client_name)
                 # Still send confirmation so Mac knows handshake is done
-                self._send_json(client_sock, {**MSG_AUTH_OK, "name": self.tray.server_name if self.tray else "Windows PC"})
+                self._send_json(conn, {**MSG_AUTH_OK, "name": self.tray.server_name if self.tray else "Windows PC"})
+                print(f"Reconnected: {self.client_name} ({addr[0]})")
 
             if self.tray:
                 self.tray.update_connection(addr[0])

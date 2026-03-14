@@ -7,7 +7,22 @@ class FlowDeskGUI:
         self.server = server
         self.tray = tray
         self.app_version = app_version
-        self.root = None
+        self.root: tk.Tk = None
+        
+        # GUI Variables (initialized in run)
+        self.server_name_var: tk.StringVar = None
+        self.ip_var: tk.StringVar = None
+        self.status_var: tk.StringVar = None
+        self.update_status_var: tk.StringVar = None
+        self.pin_var: tk.StringVar = None
+        self.devices_frame: tk.Frame = None
+        self.pairing_frame: tk.Frame = None
+        self.status_card: tk.Frame = None
+        self.client_var: tk.StringVar = None
+        self.forget_btn: tk.Button = None
+        self.update_btn: tk.Button = None
+        self.update_label: tk.Label = None
+        self.name_entry: tk.Entry = None
         
         # Colors & Fonts
         self.BG_COLOR = "#0B0F1A"
@@ -17,9 +32,6 @@ class FlowDeskGUI:
         self.TEXT_COLOR = "#F3F4F6"
         self.CARD_COLOR = "#1E293B"
         
-        # Identity
-        self.server_name_var = tk.StringVar(value=os.environ.get("COMPUTERNAME", "Windows Server"))
-        
     def run(self):
         """Starts the GUI mainloop (should be called on main thread)"""
         self.root = tk.Tk()
@@ -27,6 +39,13 @@ class FlowDeskGUI:
         self.root.geometry("420x580")
         self.root.configure(bg=self.BG_COLOR)
         self.root.resizable(False, False)
+
+        # Initialize Variables after root is created
+        self.server_name_var = tk.StringVar(value=os.environ.get("COMPUTERNAME", "Windows Server"))
+        self.ip_var = tk.StringVar(value="Discovering...")
+        self.status_var = tk.StringVar(value="Initializing...")
+        self.update_status_var = tk.StringVar(value="Checking...")
+        self.pin_var = tk.StringVar(value="000000")
 
         # Basic Style Configuration
         style = ttk.Style()
@@ -56,7 +75,7 @@ class FlowDeskGUI:
         top_info.pack(side=tk.LEFT)
         tk.Label(top_info, text="FlowDesk", font=("Segoe UI", 20, "bold"), fg=self.ACCENT_COLOR, bg=self.BG_COLOR).pack(anchor=tk.W)
         
-        self.ip_var = tk.StringVar(value="IP: Detect...ing")
+        # self.ip_var = tk.StringVar(value="IP: Detect...ing") # Moved to start of run
         tk.Label(top_info, textvariable=self.ip_var, font=("Segoe UI Semibold", 9), fg=self.SUBTEXT_COLOR, bg=self.BG_COLOR).pack(anchor=tk.W)
         self._set_local_ip()
 
@@ -116,7 +135,7 @@ class FlowDeskGUI:
         self.pairing_frame = tk.Frame(main_container, bg="#423E2A", highlightthickness=1, highlightbackground="#EAB308", padx=16, pady=16)
         
         tk.Label(self.pairing_frame, text="PAIRING REQUEST", font=("Segoe UI Bold", 9), foreground="#EAB308", background="#423E2A").pack(anchor=tk.W, pady=(0, 8))
-        self.pin_var = tk.StringVar(value="000000")
+        # self.pin_var = tk.StringVar(value="000000") # Moved to start of run
         tk.Label(self.pairing_frame, textvariable=self.pin_var, bg="#423E2A", fg="#FFFFFF", font=("Segoe UI", 32, "bold")).pack(pady=4)
         tk.Label(self.pairing_frame, text="Enter PIN on your Mac", font=("Segoe UI", 9), fg="#EAB308", background="#423E2A").pack(pady=(0, 4))
 

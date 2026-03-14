@@ -18,11 +18,13 @@ def save_paired_devices(devices):
     with open(PAIRED_DEVICES_FILE, 'w') as f:
         json.dump(devices, f, indent=2)
 
+def device_fingerprint(addr):
+    digest = str(hashlib.sha256(addr[0].encode()).hexdigest())
+    return digest[0:16]
+
 def generate_pin():
     return str(random.randint(100000, 999999))
 
-    digest = str(hashlib.sha256(addr[0].encode()).hexdigest())
-    return digest[0:16]
 
 class PairingManager:
     def __init__(self, on_pin_generated=None):

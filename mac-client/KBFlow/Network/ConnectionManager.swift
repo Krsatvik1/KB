@@ -144,7 +144,7 @@ class ConnectionManager: ObservableObject {
                         if let name = json["name"] as? String {
                             AppState.shared.serverName = name
                             // Update store
-                            let device = PairedDevice(name: name, ip: self.serverIP ?? "", hostname: "", firstSeen: Date(), lastSeen: Date())
+                            let device = PairedDevice(name: name, ip: self.lastHost, hostname: "", firstSeen: Date(), lastSeen: Date())
                             DeviceStore.shared.save(device: device)
                         }
                         print("Auth successful")
