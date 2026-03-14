@@ -26,8 +26,13 @@ class TrayApp:
 
     @property
     def server_name(self):
-        # This will be injected by main.py from the GUI name var
         return getattr(self, '_injected_name', "Windows PC")
+
+    @server_name.setter
+    def server_name(self, value):
+        self._injected_name = value
+        if hasattr(self, '_icon') and self._icon:
+            self._icon.update_menu()
 
     def _build_menu(self):
         items = [

@@ -50,12 +50,12 @@ def main():
             except Exception:
                 pass
 
-    # Start UDP discovery beacon
-    beacon = DiscoveryBeacon(server_port=5123, app_version=APP_VERSION)
-    beacon.start()
-
     # Create tray (runs in background)
     tray = TrayApp(on_quit=on_quit, on_check_updates=on_check_updates)
+
+    # Start UDP discovery beacon
+    beacon = DiscoveryBeacon(server_port=5123, app_version=APP_VERSION, name_provider=lambda: tray.server_name)
+    beacon.start()
     
     # Start TCP server in background
     server = KBFlowServer(tray=tray, app_version=APP_VERSION)

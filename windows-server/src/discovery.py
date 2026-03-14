@@ -8,11 +8,12 @@ BEACON_INTERVAL = 2  # seconds
 
 class DiscoveryBeacon:
     """Broadcasts a UDP beacon so Mac clients can auto-discover the server."""
-    def __init__(self, server_port=5123, app_version="1.0.0"):
+    def __init__(self, server_port=5123, app_version="1.0.0", name_provider=None):
         self.server_port = server_port
         self.app_version = app_version
-        self._running = False
-        self._thread = None
+        self.name_provider = name_provider or (lambda: "FlowDesk")
+        self._running: bool = False
+        self._thread: threading.Thread = None
 
     def start(self):
         self._running = True
@@ -27,13 +28,15 @@ class DiscoveryBeacon:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        payload = json.dumps({
-            "name": "FlowDesk",
-            "port": self.server_port,
-            "version": self.app_version
-        }).encode('utf-8')
+        
         while self._running:
             try:
+                payload = json.dumps({
+                    "name": "FlowDesk",
+                    "server_name": self.name_provider(),
+                    "port": self.server_port,
+                    "version": self.app_version
+                }).encode('utf-8')
                 sock.sendto(payload, ('<broadcast>', BEACON_PORT))
             except Exception as e:
                 print(f"Beacon error: {e}")

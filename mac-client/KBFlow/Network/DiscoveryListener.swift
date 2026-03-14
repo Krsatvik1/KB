@@ -42,7 +42,10 @@ class DiscoveryListener {
             else { return }
 
             let ip = "\(host)"
+            let serverName = json["server_name"] as? String ?? "Windows PC"
+            
             DispatchQueue.main.async {
+                AppState.shared.updateDiscovery(ip: ip, name: serverName, port: UInt16(port))
                 self?.onDiscovered?(ip, UInt16(port))
             }
         }

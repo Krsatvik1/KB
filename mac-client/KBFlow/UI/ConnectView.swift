@@ -26,6 +26,7 @@ struct ConnectView: View {
     @State private var showPairing = false
     @State private var isCheckingUpdates = false
     @State private var showUpToDateMessage = false
+    @State private var showManualIP = false
     
     // Identity Editing
     @State private var isEditingClientName = false
@@ -102,15 +103,59 @@ struct ConnectView: View {
     // MARK: - Connect Panel
     var connectPanel: some View {
         VStack(alignment: .leading, spacing: 20) {
-            panelHeader("Connect to Windows")
+            // ── Discovery Section ──────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    panelHeader("Available Servers")
+                    Spacer()
+                    Button(action: {
+                        appState.clearDiscovery()
+                        DiscoveryListener.shared.stop()
+                        DiscoveryListener.shared.start()
+                    }) {
+                        Image(systemName: "arrow.clockwise.circle")
+                            .foregroundColor(Color(hex: "00D4FF"))
+                    }
+                    .buttonStyle(.plain)
+                }
 
-            if let discovered = appState.autoDiscoveredIP {
-                discoverBanner(discovered)
-            }
+                if appState.discoveredServers.isEmpty {
+                    VStack(spacing: 12) {
+                        ProgressView().scaleEffect(0.6).tint(Color(hex: "6B7280"))
+                        Text("Searching for FlowDesk on local network...")
+                            .font(.system(size: 11).italic())
+                            .foregroundColor(Color(hex: "6B7280"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(appState.discoveredServers) { server in
+                            serverDiscoveryCard(server)
+                        }
+                    }
+                }
+                
+                // Manual Entry Toggle
+                Button(action: { withAnimation { showManualIP.toggle() } }) {
+                    HStack {
+                        Text(showManualIP ? "Hide manual entry" : "Enter IP manually")
+                            .font(.system(size: 10, weight: .semibold))
+                        Image(systemName: showManualIP ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 8))
+                    }
+                    .foregroundColor(Color(hex: "6B7280"))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
 
-            VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("Windows IP Address")
-                FlowDeskTextField(placeholder: "192.168.1.x", text: $appState.serverIP)
+                if showManualIP {
+                    VStack(alignment: .leading, spacing: 6) {
+                        fieldLabel("Windows IP Address")
+                        FlowDeskTextField(placeholder: "192.168.1.x", text: $appState.serverIP)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
 
             // ── Device Identity Section ─────────────────────────────────────
@@ -367,12 +412,6 @@ struct ConnectView: View {
     }
 
     func startDiscovery() {
-        DiscoveryListener.shared.onDiscovered = { ip, _ in
-            if appState.serverIP.isEmpty || appState.autoDiscoveredIP == nil {
-                appState.autoDiscoveredIP = ip
-                appState.serverIP = ip
-            }
-        }
         DiscoveryListener.shared.start()
     }
 
@@ -417,28 +456,48 @@ struct ConnectView: View {
         .toggleStyle(SwitchToggleStyle(tint: Color(hex: "00D4FF")))
     }
 
-    func discoverBanner(_ ip: String) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Color(hex: "00D4FF"))
-                .frame(width: 7, height: 7)
-                .shadow(color: Color(hex: "00D4FF"), radius: 4)
-            Text("FlowDesk found on \(ip)")
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "00D4FF"))
-            Spacer()
-            Button("Use") { appState.serverIP = ip }
-                .buttonStyle(FlowDeskSecondaryButton())
+    func serverDiscoveryCard(_ server: DiscoveredServer) -> some View {
+        Button(action: {
+            appState.serverIP = server.id
+            if !appState.isConnected { doConnect() }
+        }) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(server.name)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "E8EAF6"))
+                    Text(server.id)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(Color(hex: "6B7280"))
+                }
+                
+                Spacer()
+                
+                if appState.isConnected && appState.serverIP == server.id {
+                    Text("CONNECTED")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(Color(hex: "10B981"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "10B981").opacity(0.1))
+                        .clipShape(Capsule())
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(hex: "00D4FF"))
+                }
+            }
+            .padding(12)
+            .background(Color(hex: "111827"))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(appState.isConnected && appState.serverIP == server.id ? Color(hex: "10B981").opacity(0.4) : Color(hex: "00D4FF").opacity(0.1), lineWidth: 1)
+            )
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(hex: "00D4FF").opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Color(hex: "00D4FF").opacity(0.2), lineWidth: 1)
-        )
+        .buttonStyle(.plain)
     }
+
 
     func deviceCard(_ device: PairedDevice) -> some View {
         VStack(alignment: .leading, spacing: 12) {
