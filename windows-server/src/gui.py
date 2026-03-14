@@ -58,11 +58,22 @@ class FlowDeskGUI:
         self.client_var = tk.StringVar(value="No devices connected")
         ttk.Label(status_box, textvariable=self.client_var, style="Sub.TLabel", background=self.HEADER_COLOR).place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
-        # Device pairing / Security Section
-        ttk.Label(main_container, text="SECURITY", style="Sub.TLabel").pack(anchor=tk.W, pady=(10, 8))
+        # Pairing PIN Container (hidden by default)
+        self.pairing_frame = tk.Frame(main_container, bg="#423E2A", highlightthickness=1, highlightbackground="#EAB308")
         
-        ttk.Button(main_container, text="Copy Server IP Address", style="FlowDesk.TButton", command=self._copy_ip).pack(fill=tk.X, pady=5)
-        ttk.Button(main_container, text="Forget All Trusted Devices", style="FlowDesk.TButton", command=self._clear_paired).pack(fill=tk.X, pady=5)
+        ttk.Label(self.pairing_frame, text="PAIRING REQUEST", font=("Segoe UI", 9, "bold"), foreground="#EAB308", background="#423E2A").pack(pady=(12, 4))
+        self.pin_var = tk.StringVar(value="000000")
+        tk.Label(self.pairing_frame, textvariable=self.pin_var, bg="#423E2A", fg="#FFFFFF", font=("Segoe UI", 28, "bold")).pack(pady=(0, 8))
+        ttk.Label(self.pairing_frame, text="Enter this PIN on your Mac", style="Sub.TLabel", background="#423E2A").pack(pady=(0, 12))
+
+        # Device pairing / Security Section
+        self.security_label = ttk.Label(main_container, text="SECURITY", style="Sub.TLabel")
+        self.security_label.pack(anchor=tk.W, pady=(10, 8))
+        
+        self.copy_btn = ttk.Button(main_container, text="Copy Server IP Address", style="FlowDesk.TButton", command=self._copy_ip)
+        self.copy_btn.pack(fill=tk.X, pady=5)
+        self.forget_btn = ttk.Button(main_container, text="Forget All Trusted Devices", style="FlowDesk.TButton", command=self._clear_paired)
+        self.forget_btn.pack(fill=tk.X, pady=5)
 
         # Footer
         footer = ttk.Frame(main_container)
@@ -113,6 +124,22 @@ class FlowDeskGUI:
         if not self.root:
             return
         
+        # Check for active pairing PIN
+        if getattr(self.server, 'current_pin', None):
+            self.pin_var.set(self.server.current_pin)
+            if not self.pairing_frame.winfo_viewable():
+                self.pairing_frame.pack(fill=tk.X, pady=(0, 20), after=self.status_label.master)
+                self.security_label.pack_forget()
+                self.copy_btn.pack_forget()
+                self.forget_btn.pack_forget()
+                self.show() # Auto-lift if pairing starts
+        else:
+            if self.pairing_frame.winfo_viewable():
+                self.pairing_frame.pack_forget()
+                self.security_label.pack(anchor=tk.W, pady=(10, 8))
+                self.copy_btn.pack(fill=tk.X, pady=5)
+                self.forget_btn.pack(fill=tk.X, pady=5)
+
         if self.server.client_socket:
             self.status_var.set("● CONNECTED")
             self.status_label.config(fg="#10B981") # Green

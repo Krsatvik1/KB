@@ -3,7 +3,7 @@
 # Requires: FlowDesk.app in build/mac/
 
 APP_NAME="FlowDesk"
-VERSION="1.1.9"
+VERSION="1.2.0"
 BUILD_DIR="build/mac"
 DMG_NAME="${APP_NAME}-v${VERSION}.dmg"
 VOL_NAME="${APP_NAME} Installer"

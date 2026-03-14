@@ -25,9 +25,11 @@ class KBFlowServer:
         # Connection status for GUI/monitoring
         self.client_socket = None
         self.client_address = None
+        self.current_pin = None
 
     def _on_pin_generated(self, pin: str, client_ip: str):
         print(f"New device from {client_ip} — Pairing PIN: {pin}")
+        self.current_pin = pin
         if self.tray:
             self.tray.notify_pairing(pin, client_ip)
 
@@ -64,6 +66,7 @@ class KBFlowServer:
                     print(f"Auth failed from {addr[0]}")
                     return
                 self._send_json(conn, MSG_AUTH_OK)
+                self.current_pin = None
                 if self.tray:
                     self.tray.pairing_complete()
                 print(f"Paired: {addr[0]}")
@@ -94,6 +97,7 @@ class KBFlowServer:
             print(f"Client error: {e}")
         finally:
             print(f"Disconnected: {addr[0]}")
+            self.current_pin = None 
             if self.client_socket == conn:
                 self.client_socket = None
                 self.client_address = None
