@@ -54,6 +54,8 @@ cat > "$CONTENTS/Info.plist" <<EOF
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>
@@ -63,5 +65,8 @@ cat > "$CONTENTS/Info.plist" <<EOF
 </dict>
 </plist>
 EOF
+
+# 5. Fix permissions (Crucial for ad-hoc builds)
+chmod +x "$MACOS/$APP_NAME"
 
 echo "✅ $APP_NAME.app built successfully in $BUILD_DIR"
