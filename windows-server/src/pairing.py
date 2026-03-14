@@ -52,20 +52,21 @@ class PairingManager:
             self.on_pin_generated(pin, addr[0])
         return pin
 
-    def verify_pin(self, addr, submitted_pin) -> bool:
+    def verify_pin(self, addr, pin_to_verify, name) -> bool:
         fp = device_fingerprint(addr)
         if fp not in self.pending_pins:
             return False
-        pin, ts = self.pending_pins[fp]
+        stored_pin, ts = self.pending_pins[fp]
         # PIN expires after 5 minutes
         if time.time() - ts > 300:
             del self.pending_pins[fp]
             return False
-        if submitted_pin == pin:
+        
+        if pin_to_verify == stored_pin:
             del self.pending_pins[fp]
             self.paired[fp] = {
                 'ip': addr[0],
-                'name': submitted_pin.split('|')[1] if '|' in submitted_pin else 'Unknown Device',
+                'name': name or 'Unknown Device',
                 'first_seen': datetime.utcnow().isoformat(),
                 'last_seen': datetime.utcnow().isoformat(),
             }
