@@ -23,7 +23,7 @@ jobs:
       - name: Build with PyInstaller
         working-directory: windows-server
         run: |
-          call build.bat
+          cmd /c build.bat
           
       - name: Upload
         uses: actions/upload-artifact@v4
