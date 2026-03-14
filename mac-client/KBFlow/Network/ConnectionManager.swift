@@ -45,8 +45,7 @@ class ConnectionManager: ObservableObject {
             DispatchQueue.main.async {
                 switch state {
                 case .ready:
-                    self?.isConnected = true
-                    LatencyProbe.shared.start()
+                    // Only start receive loop, don't set isConnected or start probe yet
                     self?.receiveLoop()
                 case .failed(let err):
                     self?.tearDown()
@@ -113,6 +112,8 @@ class ConnectionManager: ObservableObject {
                     }
                 } else if t == "auth_ok" {
                     DispatchQueue.main.async {
+                        self.isConnected = true
+                        LatencyProbe.shared.start()
                         self.connectCompletion?(.success)
                         self.connectCompletion = nil
                     }

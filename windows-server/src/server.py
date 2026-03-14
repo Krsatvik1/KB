@@ -59,9 +59,19 @@ class KBFlowServer:
                 pin = self.pairing.start_pairing(addr)
                 # Tell client it must authenticate
                 self._send_json(conn, {**MSG_AUTH_REQUIRED, "hint": "Enter PIN shown on Windows"})
-                # Wait for auth packet
-                auth_pkt = self._read_packet(conn)
-                if not auth_pkt or auth_pkt.get("t") != "auth" or not self.pairing.verify_pin(addr, str(auth_pkt.get("pin", ""))):
+                
+                # Wait for auth packet, but skip over any intermittent pings
+                auth_pkt = None
+                while self.running:
+                    auth_pkt = self._read_packet(conn)
+                    if not auth_pkt: break
+                    if auth_pkt.get("t") == "auth":
+                        break
+                    elif auth_pkt.get("t") == "ping":
+                        # Echo back ping to keep connection alive if needed
+                        self.probe.handle_ping(auth_pkt, lambda d: self._send_raw(conn, d))
+                
+                if not auth_pkt or not self.pairing.verify_pin(addr, str(auth_pkt.get("pin", ""))):
                     self._send_json(conn, MSG_AUTH_FAIL)
                     print(f"Auth failed from {addr[0]}")
                     return
