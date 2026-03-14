@@ -95,7 +95,8 @@ struct ConnectView: View {
             Text("FlowDesk needs Accessibility permissions to share your keyboard and mouse with Windows. Please enable it in System Settings.")
         }
         .onAppear {
-            startDiscovery()
+            appState.startScanning()
+            DiscoveryListener.shared.start()
             checkForUpdates()
         }
     }
@@ -110,6 +111,7 @@ struct ConnectView: View {
                     Spacer()
                     Button(action: {
                         appState.clearDiscovery()
+                        appState.startScanning()
                         DiscoveryListener.shared.stop()
                         DiscoveryListener.shared.start()
                     }) {
@@ -121,10 +123,30 @@ struct ConnectView: View {
 
                 if appState.discoveredServers.isEmpty {
                     VStack(spacing: 12) {
-                        ProgressView().scaleEffect(0.6).tint(Color(hex: "6B7280"))
-                        Text("Searching for FlowDesk on local network...")
-                            .font(.system(size: 11).italic())
-                            .foregroundColor(Color(hex: "6B7280"))
+                        if appState.isScanning {
+                            ProgressView().scaleEffect(0.6).tint(Color(hex: "6B7280"))
+                            Text("Searching for FlowDesk on local network...")
+                                .font(.system(size: 11).italic())
+                                .foregroundColor(Color(hex: "6B7280"))
+                        } else {
+                            Image(systemName: "wifi.exclamationmark")
+                                .font(.system(size: 20))
+                                .foregroundColor(Color(hex: "6B7280"))
+                            Text("No servers found")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Color(hex: "E8EAF6"))
+                            Text("Ensure FlowDesk is running on your Windows PC and both devices are on the same Wi-Fi.")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "6B7280"))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                            
+                            Button("Try Again") {
+                                appState.startScanning()
+                            }
+                            .buttonStyle(SmallActionPill(color: Color(hex: "00D4FF")))
+                            .padding(.top, 4)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
@@ -412,7 +434,7 @@ struct ConnectView: View {
     }
 
     func startDiscovery() {
-        DiscoveryListener.shared.start()
+        // Obsolete, we use appState.startScanning() and DiscoveryListener.shared.start() directly
     }
 
     func checkForUpdates() {
