@@ -24,6 +24,7 @@ struct ConnectView: View {
     @State private var isConnecting = false
     @State private var errorMessage: String? = nil
     @State private var showPairing = false
+    @State private var isCheckingUpdates = false
 
     // Settings
     @AppStorage("cmdToWin") var cmdToWin = true
@@ -227,8 +228,13 @@ struct ConnectView: View {
 
             HStack {
                 Spacer()
-                Button("Check Now") { checkForUpdates() }
-                    .buttonStyle(FlowDeskSecondaryButton())
+                if isCheckingUpdates {
+                    ProgressView().scaleEffect(0.7)
+                        .tint(Color(hex: "00D4FF"))
+                } else {
+                    Button("Check Now") { checkForUpdates() }
+                        .buttonStyle(FlowDeskSecondaryButton())
+                }
             }
 
             Spacer()
@@ -276,8 +282,12 @@ struct ConnectView: View {
     }
 
     func checkForUpdates() {
+        isCheckingUpdates = true
         Updater.shared.checkForUpdates { info in
-            DispatchQueue.main.async { appState.updateAvailable = info }
+            DispatchQueue.main.async { 
+                appState.updateAvailable = info
+                isCheckingUpdates = false
+            }
         }
     }
 
