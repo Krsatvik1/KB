@@ -112,8 +112,6 @@ struct ConnectView: View {
                     Button(action: {
                         appState.clearDiscovery()
                         appState.startScanning()
-                        DiscoveryListener.shared.stop()
-                        DiscoveryListener.shared.start()
                     }) {
                         Image(systemName: "arrow.clockwise.circle")
                             .foregroundColor(Color(hex: "00D4FF"))
