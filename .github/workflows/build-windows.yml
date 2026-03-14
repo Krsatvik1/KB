@@ -28,6 +28,7 @@ jobs:
         working-directory: windows-server
         run: |
           "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        shell: cmd
           
       - name: Upload
         uses: actions/upload-artifact@v4

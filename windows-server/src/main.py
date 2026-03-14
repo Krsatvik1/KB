@@ -14,7 +14,7 @@ from discovery import DiscoveryBeacon
 from updater import check_for_updates
 from gui import FlowDeskGUI
 
-APP_VERSION = "1.1.6"
+APP_VERSION = "1.1.7"
 
 def main():
     # Track quit event across threads
