@@ -82,12 +82,57 @@ class FlowDeskGUI:
         shortcut_info = "Control is shared while connected.\nPress Esc × 3 on Mac to emergency exit."
         ttk.Label(footer, text=shortcut_info, style="Sub.TLabel", justify=tk.LEFT).pack(side=tk.LEFT)
 
+        # Updates Section (Aesthetics matched to sidebar)
+        update_section = tk.Frame(main_container, bg=self.BG_COLOR)
+        update_section.pack(fill=tk.X, pady=(20, 0))
+        ttk.Label(update_section, text="UPDATES", style="Sub.TLabel").pack(anchor=tk.W, pady=(0, 8))
+        
+        update_inner = tk.Frame(update_section, bg=self.HEADER_COLOR, highlightthickness=1, highlightbackground="#1F2937")
+        update_inner.pack(fill=tk.X)
+        
+        self.update_status_var = tk.StringVar(value=f"FlowDesk v{self.server.app_version}")
+        self.update_label = tk.Label(update_inner, textvariable=self.update_status_var, bg=self.HEADER_COLOR, fg="#9CA3AF", font=("Segoe UI", 9))
+        self.update_label.pack(side=tk.LEFT, padx=15, py=12)
+        
+        self.update_btn = tk.Button(update_inner, text="Check Now", bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR, 
+                                    activebackground=self.HEADER_COLOR, activeforeground="#FFFFFF",
+                                    relief="flat", font=("Segoe UI", 9, "bold"), command=self._check_updates)
+        self.update_btn.pack(side=tk.RIGHT, padx=15)
+
         # Handle app closing
         self.root.protocol("WM_DELETE_WINDOW", self.hide)
         
         # Start update loop
         self._update_loop()
         self.root.mainloop()
+
+    def _check_updates(self):
+        """Runs the update check in a background thread to prevent GUI hang"""
+        self.update_btn.config(state="disabled", text="Checking...")
+        self.update_status_var.set("Polling GitHub for latest version...")
+        
+        import threading
+        from updater import check_for_updates
+        
+        def _run_check():
+            update = check_for_updates(self.server.app_version)
+            self.root.after(100, lambda: self._on_update_result(update))
+            
+        threading.Thread(target=_run_check, daemon=True).start()
+
+    def _on_update_result(self, update):
+        self.update_btn.config(state="normal", text="Check Now")
+        if update:
+            self.update_status_var.set(f"NEW UPDATE: v{update['version']}")
+            self.update_label.config(fg="#FF4566") # Pink/Red
+            if messagebox.askyesno("Update Available", f"FlowDesk v{update['version']} is available. Download now?"):
+                import webbrowser
+                webbrowser.open(update['url'])
+        else:
+            self.update_status_var.set("FlowDesk is up to date.")
+            self.update_label.config(fg="#10B981") # Green
+            self.root.after(3000, lambda: self.update_status_var.set(f"FlowDesk v{self.server.app_version}"))
+            self.root.after(3000, lambda: self.update_label.config(fg="#9CA3AF"))
 
     def show(self):
         """Lifts the app window to the front"""

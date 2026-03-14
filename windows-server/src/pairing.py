@@ -38,6 +38,13 @@ class PairingManager:
     def start_pairing(self, addr):
         """Generate PIN for new device. Returns the PIN string."""
         fp = device_fingerprint(addr)
+        
+        # Reuse existing PIN if it exists and hasn't expired (5 min)
+        if fp in self.pending_pins:
+            pin, ts = self.pending_pins[fp]
+            if time.time() - ts < 300:
+                return pin
+                
         pin = generate_pin()
         self.pending_pins[fp] = (pin, time.time())
         if self.on_pin_generated:
