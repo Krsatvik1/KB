@@ -208,8 +208,8 @@ class FlowDeskGUI:
             if not self.pairing_frame.winfo_viewable():
                 self.pairing_frame.pack(fill=tk.X, pady=(0, 20), after=self.status_card)
                 if not self.pairing_frame.winfo_children():
-                    p_wrap = ctk.CTkFrame(self.pairing_frame, fg_color="transparent", padx=20, pady=20)
-                    p_wrap.pack(fill=tk.X)
+                    p_wrap = ctk.CTkFrame(self.pairing_frame, fg_color="transparent")
+                    p_wrap.pack(fill=tk.X, padx=20, pady=20)
                     ctk.CTkLabel(p_wrap, text="NEW DEVICE PAIRING", font=("Segoe UI Bold", 10), text_color="#EAB308").pack(anchor=tk.W)
                     ctk.CTkLabel(p_wrap, text="Enter this PIN on your other device:", font=("Segoe UI", 12)).pack(anchor=tk.W, pady=(4, 8))
                     ctk.CTkLabel(p_wrap, textvariable=self.pin_var, font=("Segoe UI Bold", 36), text_color="#EAB308").pack(pady=10)
@@ -248,8 +248,8 @@ class FlowDeskGUI:
                     row.pack(fill=tk.X, pady=4)
                     row.device_fp = fp
                     
-                    inner = ctk.CTkFrame(row, fg_color="transparent", padx=12, pady=10)
-                    inner.pack(fill=tk.X)
+                    inner = ctk.CTkFrame(row, fg_color="transparent")
+                    inner.pack(fill=tk.X, padx=12, pady=10)
                     
                     info = ctk.CTkFrame(inner, fg_color="transparent")
                     info.pack(side=tk.LEFT)
