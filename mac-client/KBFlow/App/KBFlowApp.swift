@@ -26,9 +26,9 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: appState.isConnected)
-        .onChange(of: appState.isConnected) { connected in
+        .onChange(of: appState.isConnected) { oldValue, newValue in
             if let delegate = NSApp.delegate as? AppDelegate {
-                delegate.toggleFullScreen(connected)
+                delegate.toggleFullScreen(newValue)
             }
         }
     }

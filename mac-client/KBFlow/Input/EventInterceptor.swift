@@ -108,7 +108,7 @@ class EventInterceptor {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             let flags = event.flags
             
-            var keymap: [CGKeyCode: (CGEventFlags, Int)] = [
+            let keymap: [CGKeyCode: (CGEventFlags, Int)] = [
                 56: (.maskShift, 0xA0), // LShift
                 60: (.maskShift, 0xA1), // RShift
                 59: (.maskControl, 0xA2), // LCtrl
