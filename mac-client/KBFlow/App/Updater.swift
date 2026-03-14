@@ -7,7 +7,7 @@ struct UpdateInfo {
 
 class Updater {
     static let shared = Updater()
-    let currentVersion = "1.0.0"
+    let currentVersion = "1.1.0"
     private let apiURL = URL(string: "https://api.github.com/repos/Krsatvik1/KB/releases/latest")!
 
     func checkForUpdates(completion: @escaping (UpdateInfo?) -> Void) {

@@ -69,7 +69,9 @@ struct ConnectView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(width: 460, height: 520)
+        }
+        .frame(minWidth: appState.isConnected ? 800 : 460, minHeight: appState.isConnected ? 600 : 520)
+        .frame(width: appState.isConnected ? nil : 460, height: appState.isConnected ? nil : 520)
         .sheet(isPresented: $showPairing) {
             PairingView(pin: .constant("")) { pin in
                 ConnectionManager.shared.submitPairingPin(pin)
@@ -363,7 +365,8 @@ private struct SidebarItem: View {
                 .foregroundColor(selected ? Color(hex: "00D4FF") : Color(hex: "6B7280"))
                 .shadow(color: selected ? Color(hex: "00D4FF").opacity(0.6) : .clear, radius: 6)
         }
-        .frame(width: 60, height: 52)
-        .background(selected ? Color(hex: "00D4FF").opacity(0.08) : .clear)
+        .frame(width: 60, height: 54)
+        .contentShape(Rectangle())
+        .background(selected ? Color(hex: "00D4FF").opacity(0.08) : Color.clear)
     }
 }
