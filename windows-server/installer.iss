@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=FlowDesk
-AppVersion=1.1.7
+AppVersion=1.1.8
 DefaultDirName={autopf}\FlowDesk
 DefaultGroupName=FlowDesk
 UninstallDisplayIcon={app}\FlowDeskServer.exe

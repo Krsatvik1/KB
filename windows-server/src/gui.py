@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import threading
 import os
 
 class FlowDeskGUI:
@@ -9,94 +8,118 @@ class FlowDeskGUI:
         self.tray = tray
         self.app_version = app_version
         self.root = None
-        self._is_running = False
         
-        # Placeholders for thread safety
-        self.status_var = None
-        self.client_var = None
-
-    def show(self):
-        if self._is_running:
-            if self.root:
-                self.root.lift()
-            return
+        # Colors & Fonts
+        self.BG_COLOR = "#0B0F1A"
+        self.HEADER_COLOR = "#111827"
+        self.ACCENT_COLOR = "#00D4FF"
+        self.SUBTEXT_COLOR = "#6B7280"
+        self.TEXT_COLOR = "#E8EAF6"
         
-        threading.Thread(target=self._run, daemon=True).start()
-
-    def _run(self):
-        self._is_running = True
+    def run(self):
+        """Starts the GUI mainloop (should be called on main thread)"""
         self.root = tk.Tk()
-        self.root.title(f"FlowDesk Settings — v{self.app_version}")
-        self.root.geometry("400x500")
-        self.root.configure(bg="#0B0F1A")
+        self.root.title(f"FlowDesk Settings")
+        self.root.geometry("420x580")
+        self.root.configure(bg=self.BG_COLOR)
         self.root.resizable(False, False)
 
-        # Style
+        # Basic Style Configuration
         style = ttk.Style()
         style.theme_use('clam')
-        style.configure("TFrame", background="#0B0F1A")
-        style.configure("TLabel", background="#0B0F1A", foreground="#E8EAF6", font=("Segoe UI", 10))
-        style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"), foreground="#00D4FF")
-        style.configure("TButton", background="#111827", foreground="#E8EAF6", borderwidth=0)
+        style.configure("TFrame", background=self.BG_COLOR)
+        style.configure("TLabel", background=self.BG_COLOR, foreground=self.TEXT_COLOR, font=("Segoe UI", 10))
+        style.configure("Header.TLabel", font=("Segoe UI", 16, "bold"), foreground=self.ACCENT_COLOR)
+        style.configure("Sub.TLabel", font=("Segoe UI", 9), foreground=self.SUBTEXT_COLOR)
         
-        main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Custom button style
+        style.map("FlowDesk.TButton",
+            background=[('active', self.ACCENT_COLOR), ('!active', self.HEADER_COLOR)],
+            foreground=[('active', self.BG_COLOR), ('!active', self.TEXT_COLOR)]
+        )
+        style.configure("FlowDesk.TButton", borderwidth=0, font=("Segoe UI", 10, "bold"), padding=10)
 
-        # Header
-        ttk.Label(main_frame, text="FlowDesk Server", style="Header.TLabel").pack(pady=(0, 20))
+        # Main Layout
+        main_container = ttk.Frame(self.root, padding="30")
+        main_container.pack(fill=tk.BOTH, expand=True)
 
-        # Status Group
-        status_frame = ttk.LabelFrame(main_frame, text=" Status ", padding="10")
-        status_frame.pack(fill=tk.X, pady=10)
+        # Header Section
+        ttk.Label(main_container, text="FlowDesk", style="Header.TLabel").pack(pady=(0, 4))
+        ttk.Label(main_container, text="Windows Server v" + self.app_version, style="Sub.TLabel").pack(pady=(0, 30))
+
+        # Status Display Container
+        status_box = tk.Canvas(main_container, bg=self.HEADER_COLOR, highlightthickness=1, highlightbackground="#1F2937", height=100)
+        status_box.pack(fill=tk.X, pady=(0, 20))
         
-        self.status_var = tk.StringVar(value="Waiting for connection...")
-        ttk.Label(status_frame, textvariable=self.status_var).pack(anchor=tk.W)
+        self.status_var = tk.StringVar(value="WAITING FOR CONNECTION")
+        self.status_label = tk.Label(status_box, textvariable=self.status_var, bg=self.HEADER_COLOR, fg=self.ACCENT_COLOR, font=("Segoe UI Semibold", 10))
+        self.status_label.place(relx=0.5, rely=0.4, anchor=tk.CENTER)
+        
+        self.client_var = tk.StringVar(value="No devices connected")
+        ttk.Label(status_box, textvariable=self.client_var, style="Sub.TLabel", background=self.HEADER_COLOR).place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
-        self.client_var = tk.StringVar(value="Client: None")
-        ttk.Label(status_frame, textvariable=self.client_var).pack(anchor=tk.W)
-
-        # Settings
-        settings_frame = ttk.LabelFrame(main_frame, text=" Security ", padding="10")
-        settings_frame.pack(fill=tk.X, pady=10)
-
-        def clear_paired():
-            if messagebox.askyesno("Confirm", "Forget all paired devices? Clients will need to re-enter PIN."):
-                if hasattr(self.server, 'pairing_manager'):
-                    self.server.pairing_manager.forget_all()
-                    messagebox.showinfo("Success", "All devices forgotten.")
-
-        ttk.Button(settings_frame, text="Forget All Devices", command=clear_paired).pack(fill=tk.X)
+        # Device pairing / Security Section
+        ttk.Label(main_container, text="SECURITY", style="Sub.TLabel").pack(anchor=tk.W, pady=(10, 8))
+        
+        ttk.Button(main_container, text="Copy Server IP Address", style="FlowDesk.TButton", command=self._copy_ip).pack(fill=tk.X, pady=5)
+        ttk.Button(main_container, text="Forget All Trusted Devices", style="FlowDesk.TButton", command=self._clear_paired).pack(fill=tk.X, pady=5)
 
         # Footer
-        footer_frame = ttk.Frame(main_frame)
-        footer_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=(20, 0))
+        footer = ttk.Frame(main_container)
+        footer.pack(side=tk.BOTTOM, fill=tk.X)
         
-        ttk.Label(footer_frame, text=f"Version {self.app_version}", foreground="#6B7280", font=("Segoe UI", 8)).pack(side=tk.LEFT)
-        
-        def on_close():
-            self._is_running = False
-            self.root.destroy()
-            self.root = None
+        shortcut_info = "Control is shared while connected.\nPress Esc × 3 on Mac to emergency exit."
+        ttk.Label(footer, text=shortcut_info, style="Sub.TLabel", justify=tk.LEFT).pack(side=tk.LEFT)
 
-        self.root.protocol("WM_DELETE_WINDOW", on_close)
+        # Handle app closing
+        self.root.protocol("WM_DELETE_WINDOW", self.hide)
         
-        # Periodic update
+        # Start update loop
         self._update_loop()
-        
         self.root.mainloop()
 
+    def show(self):
+        """Lifts the app window to the front"""
+        if self.root:
+            self.root.deiconify()
+            self.root.lift()
+            self.root.focus_force()
+
+    def hide(self):
+        """Hides the window to tray instead of closing"""
+        if self.root:
+            self.root.withdraw()
+
+    def _copy_ip(self):
+        import socket
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            self.root.clipboard_clear()
+            self.root.clipboard_append(ip)
+            messagebox.showinfo("Copied", f"Local IP {ip} copied to clipboard.")
+        except Exception:
+            messagebox.showerror("Error", "Could not detect local IP.")
+
+    def _clear_paired(self):
+        if messagebox.askyesno("Security", "Forget all paired devices? Clients will need a new PIN to connect."):
+            if hasattr(self.server, 'pairing_manager'):
+                self.server.pairing_manager.forget_all()
+                messagebox.showinfo("Success", "Pairing list cleared.")
+
     def _update_loop(self):
-        if not self._is_running or not self.root:
+        if not self.root:
             return
         
-        # Pull status from server/tray
-        if self.status_var and self.client_var:
-            if self.server.client_socket:
-                self.status_var.set("● Connected")
-                self.client_var.set(f"Client: {self.server.client_address[0]}")
-            else:
-                self.status_var.set("Waiting for connection...")
-                self.client_var.set("Client: None")
+        if self.server.client_socket:
+            self.status_var.set("● CONNECTED")
+            self.status_label.config(fg="#10B981") # Green
+            self.client_var.set(f"Active Client: {self.server.client_address[0]}")
+        else:
+            self.status_var.set("WAITING FOR CONNECTION")
+            self.status_label.config(fg=self.ACCENT_COLOR) # Blue-Cyan
+            self.client_var.set("No devices connected")
             
-        if self.root:
-            self.root.after(1000, self._update_loop)
+        self.root.after(1000, self._update_loop)

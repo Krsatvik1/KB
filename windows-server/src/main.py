@@ -14,14 +14,16 @@ from discovery import DiscoveryBeacon
 from updater import check_for_updates
 from gui import FlowDeskGUI
 
-APP_VERSION = "1.1.7"
+APP_VERSION = "1.1.8"
 
 def main():
-    # Track quit event across threads
+    # Track quit event
     stop_event = threading.Event()
 
     def on_quit():
         stop_event.set()
+        if gui.root:
+            gui.root.quit()
 
     def on_check_updates():
         result = check_for_updates(APP_VERSION)
@@ -37,7 +39,6 @@ def main():
             except Exception:
                 print(f"Update available: {result['version']} — {result['url']}")
         else:
-            # Notify only on manual check
             try:
                 from plyer import notification
                 notification.notify(
@@ -49,32 +50,34 @@ def main():
             except Exception:
                 pass
 
-    # Start tray (runs in background thread; main thread keeps it alive)
-    tray = TrayApp(on_quit=on_quit, on_check_updates=on_check_updates)
-    tray.start()
-
     # Start UDP discovery beacon
     beacon = DiscoveryBeacon(server_port=5123, app_version=APP_VERSION)
     beacon.start()
 
-    # Start TCP server in a background thread
-    server = KBFlowServer(tray=tray, app_version=APP_VERSION)
+    # Create tray (runs in background)
+    tray = TrayApp(on_quit=on_quit, on_check_updates=on_check_updates)
     
-    # Initialize GUI
-    gui = FlowDeskGUI(server=server, tray=tray, app_version=APP_VERSION)
-    tray.on_show_settings = gui.show
-
+    # Start TCP server in background
+    server = KBFlowServer(tray=tray, app_version=APP_VERSION)
     server_thread = threading.Thread(target=server.start, daemon=True)
     server_thread.start()
 
-    print(f"FlowDesk Server v{APP_VERSION} running. Check the system tray.")
+    # Initialize GUI
+    gui = FlowDeskGUI(server=server, tray=tray, app_version=APP_VERSION)
+    tray.on_show_settings = gui.show
+    
+    # Start tray icon after GUI is prepped
+    tray.start()
+
+    print(f"FlowDesk Server v{APP_VERSION} starting...")
 
     # Check for updates on startup (non-blocking)
     threading.Thread(target=on_check_updates, daemon=True).start()
 
-    # Keep main thread alive until quit
+    # Run the GUI on the main thread (blocks until manual quit or 'on_quit')
+    # This automatically shows the window on launch as requested.
     try:
-        stop_event.wait()
+        gui.run()
     except KeyboardInterrupt:
         pass
 
